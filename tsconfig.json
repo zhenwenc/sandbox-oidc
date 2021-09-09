@@ -1,0 +1,23 @@
+{
+  "extends": "@navch/common",
+  "compilerOptions": {
+    "lib": ["dom"],
+    "jsx": "preserve",
+    "target": "es5",
+    "allowJs": true,
+    "strict": false,
+    "noEmit": false,
+    "sourceMap": false,
+    "preserveConstEnums": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "outDir": "build",
+    "paths": {
+      "@services/*": ["src/services/*"],
+      "@components/*": ["src/components/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"]
+}
