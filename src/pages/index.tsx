@@ -24,10 +24,10 @@ export default function Index() {
   const showModal = useLatestCallback(() => setModalOpen(true));
   const hideModal = useLatestCallback(() => setModalOpen(false));
 
-  const client = useOAuthClient();
+  const oauth = useOAuthClient();
   const registrationForm = useForm<ClientDetails>({
     onSubmit: ({ values }) => {
-      client.setClient(values);
+      oauth.setClient(values);
       hideModal();
     },
   });
@@ -58,14 +58,14 @@ export default function Index() {
       flexGrow: 1,
       renderCell: ({ row }) => (
         <Box fluid flex>
-          <Button variant="outlined" onClick={() => client.authroze(row.original.client_id)}>
+          <Button variant="outlined" onClick={() => oauth.authorize(row.original)}>
             {'Authorize'}
           </Button>
           <Button
             variant="outlined"
             ml={2}
             disabled={row.original.remote}
-            onClick={() => client.removeClient(row.original)}
+            onClick={() => oauth.removeClient(row.original)}
           >
             <IconClose />
           </Button>
@@ -80,17 +80,21 @@ export default function Index() {
         <Box padded baseline background="tint2" textAlign="center">
           <Text bold>{'Instructions'}</Text>
         </Box>
-        <Box flex padded align="center" justify="between">
-          <Text>{'❶ Register an OIDC client (optional).'}</Text>
+        <Box baseline flex align="center" justify="between">
+          <Text padded>{'❶ Register an OIDC client (optional).'}</Text>
           <Button onClick={showModal}>{'Register Client'}</Button>
         </Box>
-        <Text padded>{`❷ Add allowed redirect URL to client: ${client.redirectUri}.`}</Text>
-        <Text padded>{`❸ Initiate authentication requests with an available client.`}</Text>
+        <Box baseline>
+          <Text padded>{`❷ Add allowed redirect URL to client: ${oauth.redirectUri}.`}</Text>
+        </Box>
+        <Box>
+          <Text padded>{`❸ Initiate authentication requests with an available client.`}</Text>
+        </Box>
       </Card>
 
       <Card raised mt={4} style={{ width: 800 }}>
         <Table
-          data={client.values}
+          data={oauth.clients}
           columns={columns}
           bodyProps={{ style: { maxHeight: '80vh' }, scrollable: true }}
         />

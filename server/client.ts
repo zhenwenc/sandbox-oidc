@@ -100,6 +100,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
       handle: async (_1, args, { res, logger }) => {
         const { client_id, redirect_uri = defaults.redirect_uri } = args;
         const metadata = { ...args, redirect_uri };
+        logger.info('Register OIDC verifier with settings', metadata);
 
         if (defaults.client_id === client_id) {
           throw new ForbiddenError({ reason: 'Default OIDC clients is protected!' });
@@ -107,8 +108,6 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
         if (options.clients?.some(x => x.client_id === client_id)) {
           throw new ForbiddenError({ reason: 'Predefined clients are protected!' });
         }
-
-        logger.info('Register OIDC verifier with settings', metadata);
         await options.storage.setItem(Metadata.withClientId(client_id), metadata, 86400);
         res.send({ status: 'Ok' });
       },

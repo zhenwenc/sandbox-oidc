@@ -22,5 +22,6 @@ export async function resolvePublicURL(url: string): Promise<string> {
     }
     return tunnel.public_url;
   }
-  return href;
+
+  return url;
 }

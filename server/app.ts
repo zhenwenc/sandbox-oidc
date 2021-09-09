@@ -51,11 +51,7 @@ async function bootstrap() {
     ? validate(JSON.parse(process.env.OIDC_CLIENTS), t.array(Metadata.codec))
     : undefined;
 
-  const web = next({
-    conf: { basePath: '/oauth' } as any,
-    dev: process.env.NODE_ENV !== 'production',
-  });
-  const webHandler = web.getRequestHandler();
+  const web = next({ dev: process.env.NODE_ENV !== 'production' });
   await web.prepare();
 
   const app = express();
@@ -80,6 +76,7 @@ async function bootstrap() {
   // const dist = path.resolve(`${__dirname}/../dist`);
   // app.use(express.static(dist, { redirect: false, extensions: ['html'] }));
 
+  const webHandler = web.getRequestHandler();
   app.all('*', (req, res) => webHandler(req, res));
 
   const server = app.listen(process.env.PORT || 3000, () => {

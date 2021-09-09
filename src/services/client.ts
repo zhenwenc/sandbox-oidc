@@ -55,6 +55,10 @@ export function useOAuthClient() {
   const isMounted = useMountedState();
   const { value: remoteClients = [] } = fetchedStaticClients;
 
+  const isSameClient = (a: ClientInfo) => (b: ClientInfo) => {
+    return R.equals([a.issuer, a.client_id], [b.issuer, b.client_id]);
+  };
+
   // Fetch data on client-side only
   useMount(async () => {
     setRedirectUri(`${window.location.origin}/oauth/callback`);
@@ -63,7 +67,10 @@ export function useOAuthClient() {
 
   return {
     redirectUri,
-    values: useMemo(() => {
+    /**
+     * List all of the known OIDC clients.
+     */
+    clients: useMemo(() => {
       if (!isMounted()) return []; // Avoid mismatching react dom
       return [
         ...remoteClients.map(x => ({ ...x, remote: true })),
@@ -79,8 +86,8 @@ export function useOAuthClient() {
     setClient: useLatestCallback(({ issuer, client_id, client_secret }: ClientDetails) => {
       const updated = thread(
         storedClients,
-        s => s.filter(a => !R.equals([a.issuer, a.client_id], [issuer, client_id])),
-        s => s.concat([{ issuer, client_id, client_secret }])
+        R.reject(isSameClient({ issuer, client_id })),
+        R.concat([{ issuer, client_id, client_secret }])
       );
       setStoredClients(updated);
     }),
@@ -89,10 +96,8 @@ export function useOAuthClient() {
      *
      * This function does NOT sync the changes to backend server.
      */
-    removeClient: useLatestCallback(({ issuer, client_id }: ClientInfo) => {
-      const updated = thread(storedClients, s =>
-        s.filter(a => !R.equals([a.issuer, a.client_id], [issuer, client_id]))
-      );
+    removeClient: useLatestCallback((client: ClientInfo) => {
+      const updated = thread(storedClients, R.reject(isSameClient(client)));
       setStoredClients(updated);
     }),
     /**
@@ -101,8 +106,8 @@ export function useOAuthClient() {
      * This function also registers the client in backend server in order to
      * exchange access tokens when succeed.
      */
-    authroze: useLatestCallback(async (client_id: string) => {
-      const storedClient = storedClients.find(a => a.client_id === client_id);
+    authorize: useLatestCallback(async ({ issuer, client_id }: ClientInfo) => {
+      const storedClient = storedClients.find(isSameClient({ issuer, client_id }));
       if (storedClient) {
         await registerClient(storedClient);
       }

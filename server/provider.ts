@@ -225,14 +225,16 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
    */
   provider.Client.prototype.redirectUriAllowed = _redirectUri => true;
 
-  function handleClientAuthErrors(ctx: OIDCContext, error: OIDCErrors.OIDCProviderError) {
+  function handleClientAuthErrors(ctx: OIDCContext, err: OIDCErrors.OIDCProviderError) {
     const { logger } = getRequestContext(ctx.req);
     const { authorization } = ctx.headers;
     const { client, body, params } = ctx.oidc;
-    if (error.statusCode === 401 && error.message === 'invalid_client') {
-      logger.info(`[ClientAuthError]`, { authorization, body, client, error });
+    if (err.statusCode === 401 && err.message === 'invalid_client') {
+      const error = err.message;
+      logger.error(`[ClientAuthError]`, { authorization, body, client, error });
     } else {
-      logger.info(`[ClientError]`, { authorization, client, body, params, error });
+      const error = err.message;
+      logger.error(`[ClientError]`, { authorization, client, body, params, error });
     }
   }
   provider.on('jwks.error', handleClientAuthErrors);

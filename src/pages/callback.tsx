@@ -20,7 +20,7 @@ export default function CallbackScreen() {
   }, [JSON.stringify(query)]);
 
   return (
-    <FullscreenLayout noHeader>
+    <FullscreenLayout noHeader={false}>
       {params ? (
         <InteractionResult params={params} showDetails={true} />
       ) : (
