@@ -8,12 +8,11 @@
     "url": "https://github.com/zhenwenc"
   },
   "scripts": {
-    "build": "next build",
-    "check": "tsc -b .",
-    "deploy": "npx vercel",
-    "start": "ts-node -T --files server/app.ts",
+    "build": "tsc -b .",
+    "start": "node build/server/app.js",
     "start:dev": "nodemon --watch 'server/**/*.*' --exec ts-node -T --files server/app.ts",
-    "build:web": "next build && next export -o dist"
+    "build:web": "next build && next export -o dist",
+    "heroku-postbuild": "tsc -b . && next build"
   },
   "dependencies": {
     "@navch/codec": "next",
