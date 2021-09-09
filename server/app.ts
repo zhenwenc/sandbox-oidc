@@ -17,7 +17,10 @@ import { buildInMemoryStorage, buildRedisStorage } from './storage';
 import { resolvePublicURL } from './utils';
 
 async function bootstrap() {
-  const expressLogger = new Logger({ name: 'oidc', prettyPrint: true });
+  const expressLogger = new Logger({
+    name: 'oidc',
+    prettyPrint: process.env.NODE_ENV !== 'production',
+  });
   const requestLogger = morgan('dev', {
     stream: { write: compose(expressLogger.debug, trim) },
     skip: ({ path, baseUrl }: express.Request) => {
@@ -65,7 +68,10 @@ async function bootstrap() {
 
   app.enable('trust proxy'); // Trusting TLS offloading proxies
 
-  const publicURL = await resolvePublicURL('ngrok://ngrok:4040/api/tunnels');
+  if (!process.env.OIDC_PUBLIC_URL) {
+    throw new Error('Environment variable OIDC_PUBLIC_URL is required!');
+  }
+  const publicURL = await resolvePublicURL(process.env.OIDC_PUBLIC_URL);
 
   app.use(await buildOIDCProvider({ publicURL, adapter }));
   app.use(await buildOIDCClient({ publicURL, storage, clients }));

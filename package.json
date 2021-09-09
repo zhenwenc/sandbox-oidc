@@ -28,6 +28,7 @@
     "errorhandler": "1.5.1",
     "got": "11.8.2",
     "helmet": "4.6.0",
+    "ioredis": "4.27.7",
     "memoizee": "0.4.15",
     "morgan": "1.10.0",
     "next": "11.0.1",
@@ -36,7 +37,8 @@
     "query-string": "7.0.1",
     "ramda": "0.27.1",
     "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react-dom": "17.0.2",
+    "tslib": "2.3.0"
   },
   "devDependencies": {
     "@navch/toolkit": "0.7.3",
@@ -49,7 +51,6 @@
     "@types/memoizee": "0.4.6",
     "@types/morgan": "1.9.3",
     "@types/oidc-provider": "7.4.3",
-    "@types/ramda": "0.27.44",
-    "tslib": "2.3.0"
+    "@types/ramda": "0.27.44"
   }
 }
