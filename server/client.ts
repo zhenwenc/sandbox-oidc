@@ -3,7 +3,7 @@ import R from 'ramda';
 import express from 'express';
 import memoize from 'memoizee';
 import { BinaryLike, createHash, randomBytes } from 'crypto';
-import { Issuer, AuthorizationParameters, errors } from 'openid-client';
+import { Issuer, AuthorizationParameters, custom, errors } from 'openid-client';
 
 import { ForbiddenError, NotFoundError, isNotNullish, threadP } from '@navch/common';
 import { makeHandler, makeRouter } from '@navch/express';
@@ -50,6 +50,7 @@ export type OIDCClientOptions = {
 
 export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
   const discover = memoize(Issuer.discover, { async: true, max: 10, maxAge: 5000 });
+  custom.setHttpOptionsDefaults({ followRedirect: true });
 
   const defaults: Required<Metadata> = {
     issuer: options.publicURL,
