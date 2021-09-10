@@ -1,23 +1,11 @@
 import { useState } from 'react';
 
-import {
-  Box,
-  Button,
-  Card,
-  Text,
-  Table,
-  TableColumnProps,
-  IconClose,
-  Input,
-  Modal,
-  Form,
-  FormField,
-  useForm,
-} from '@navch-ui/core';
+import { Box, Button, Card, Text, Input, Modal, Form, FormField, useForm } from '@navch-ui/core';
 import { useLatestCallback } from '@navch-ui/hooks';
 
-import { ClientInfo, ClientDetails, useOAuthClient } from '@services/client';
+import { ClientDetails, useOAuthClient } from '@services/client';
 import { FullscreenLayout } from '@components/FullscreenLayout';
+import { ClientTable } from '@components/ClientTable';
 
 export default function Index() {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -32,48 +20,6 @@ export default function Index() {
     },
   });
 
-  const columns: TableColumnProps<ClientInfo>[] = [
-    {
-      id: 'issuer',
-      span: 4,
-      flexGrow: 1,
-      renderCell: ({ cell }) => (
-        <Text ellipsis title={cell.value}>
-          {cell.value}
-        </Text>
-      ),
-    },
-    {
-      id: 'client_id',
-      span: 3,
-      renderCell: ({ cell }) => (
-        <Text ellipsis title={cell.value}>
-          {cell.value}
-        </Text>
-      ),
-    },
-    {
-      id: 'operations',
-      span: 1,
-      flexGrow: 1,
-      renderCell: ({ row }) => (
-        <Box fluid flex>
-          <Button variant="outlined" onClick={() => oauth.authorize(row.original)}>
-            {'Authorize'}
-          </Button>
-          <Button
-            variant="outlined"
-            ml={2}
-            disabled={row.original.remote}
-            onClick={() => oauth.removeClient(row.original)}
-          >
-            <IconClose />
-          </Button>
-        </Box>
-      ),
-    },
-  ];
-
   return (
     <FullscreenLayout align="center" justify="start" style={{ overflow: 'auto' }}>
       <Card raised fluid mt={8} style={{ width: 800 }}>
@@ -82,7 +28,9 @@ export default function Index() {
         </Box>
         <Box baseline flex align="center" justify="between">
           <Text padded>{'❶ Register an OIDC client (optional).'}</Text>
-          <Button onClick={showModal}>{'Register Client'}</Button>
+          <Button onClick={showModal} mh={2}>
+            {'Register Client'}
+          </Button>
         </Box>
         <Box baseline>
           <Text padded>{`❷ Add allowed redirect URL to client: ${oauth.redirectUri}.`}</Text>
@@ -93,11 +41,7 @@ export default function Index() {
       </Card>
 
       <Card raised mt={4} style={{ width: 800 }}>
-        <Table
-          data={oauth.clients}
-          columns={columns}
-          bodyProps={{ style: { maxHeight: '80vh' }, scrollable: true }}
-        />
+        <ClientTable />
       </Card>
 
       <Modal
