@@ -48,6 +48,16 @@ export type OIDCClientOptions = {
   readonly clients: Partial<Metadata>[] | undefined;
 };
 
+/**
+ * A general-purpose OpenID Connect Relying Party WebApp for request orchestration.
+ *
+ * - Generate authorization requests with proper parameters.
+ * - Default callback handler for response inspection.
+ * - Dynamic OAuth client registration to support custom OIDC provider.
+ *
+ * http://localhost:8080/oauth
+ * https://sandbox-oidc.herokuapp.com/oauth
+ */
 export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
   const discover = memoize(Issuer.discover, { async: true, max: 10, maxAge: 5000 });
   custom.setHttpOptionsDefaults({ followRedirect: true });

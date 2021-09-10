@@ -121,7 +121,7 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
      * the response_type is id_token.
      *
      * Violate the best practice here to enable scope-requested claims in ID Tokens
-     * to match the default behaviour from Auth0.
+     * to match the default behavior as in Auth0.
      *
      * https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
      * https://github.com/panva/node-oidc-provider/tree/main/docs#conformidtokenclaims
@@ -130,7 +130,7 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
     conformIdTokenClaims: false, // default to true
     /**
      * Describes the claims that the OpenID Provider MAY be able to supply values
-     * for. Must be a subset of the OpenID Connect 1.0 Standard Claims.
+     * for. Normally it is a subset of the OpenID Connect 1.0 Standard Claims.
      *
      *    { "scope" -> [claims] }
      *
@@ -165,7 +165,7 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
     },
     /**
      * This function will be called after the authentication request has succeeded
-     * along with the subject's `accountId` the given result of
+     * along with the OIDC scope and the subject's `accountId` from given result of
      * either `interactionResult` or `interactionFinished`.
      *
      * https://github.com/panva/node-oidc-provider/blob/main/docs/README.md#accounts
@@ -218,10 +218,14 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
   /**
    * HACK Allow wildcard redirect uri for development.
    *
-   * Do not use this in production because violates both the OpenID Connect spec
+   * Do not use this in production because it violates both the OpenID Connect spec
    * and OAuth 2.0 Security Best Current Practice.
    *
+   * The proper alternative is Dynamic Client Registration (RFC 7591).
+   *
    * https://github.com/panva/node-oidc-provider/blob/main/recipes/redirect_uri_wildcards.md
+   * https://openid.net/specs/openid-connect-registration-1_0.html
+   * https://datatracker.ietf.org/doc/html/rfc7591
    */
   provider.Client.prototype.redirectUriAllowed = _redirectUri => true;
 
