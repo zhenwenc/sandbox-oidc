@@ -4,7 +4,7 @@ import { Box, Button, Card, Text, Input, Modal, Form, FormField, useForm } from 
 import { useLatestCallback } from '@navch-ui/hooks';
 
 import { ClientDetails, useOAuthClient } from '@services/client';
-import { FullscreenLayout } from '@components/FullscreenLayout';
+import { Layout } from '@components/Layout';
 import { ClientTable } from '@components/ClientTable';
 
 export default function Index() {
@@ -21,7 +21,7 @@ export default function Index() {
   });
 
   return (
-    <FullscreenLayout align="center" justify="start" style={{ overflow: 'auto' }}>
+    <Layout align="center" justify="start" style={{ overflow: 'auto' }}>
       <Card raised fluid mt={8} style={{ width: 800 }}>
         <Box padded baseline background="tint2" textAlign="center">
           <Text bold>{'Instructions'}</Text>
@@ -63,6 +63,6 @@ export default function Index() {
           </FormField>
         </Form>
       </Modal>
-    </FullscreenLayout>
+    </Layout>
   );
 }

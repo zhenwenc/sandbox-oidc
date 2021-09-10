@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Message } from '@navch-ui/core';
 
-import { FullscreenLayout } from '@components/FullscreenLayout';
+import { Layout } from '@components/Layout';
 import { InteractionResult } from '@components/InteractionResult';
 
 export default function CallbackScreen() {
@@ -20,12 +20,12 @@ export default function CallbackScreen() {
   }, [JSON.stringify(query)]);
 
   return (
-    <FullscreenLayout noHeader={false}>
+    <Layout noHeader={false}>
       {params ? (
         <InteractionResult params={params} showDetails={true} />
       ) : (
         <Message filled kind="loading" title="Loading..." />
       )}
-    </FullscreenLayout>
+    </Layout>
   );
 }

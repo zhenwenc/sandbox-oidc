@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { Card, Mask } from '@navch-ui/core';
 import { useLatestCallback } from '@navch-ui/hooks';
 
-import { FullscreenLayout } from '@components/FullscreenLayout';
+import { Layout } from '@components/Layout';
 import { VerificationCodePane } from '@components/VerificationCodePane';
 
 export default function InteractionScreen() {
@@ -17,7 +17,7 @@ export default function InteractionScreen() {
   });
 
   return (
-    <FullscreenLayout noHeader>
+    <Layout noHeader>
       <Card raised>
         {/* This screen may have pre-rendered on the server-side */}
         <Mask loading={isPreview}>
@@ -27,6 +27,6 @@ export default function InteractionScreen() {
           />
         </Mask>
       </Card>
-    </FullscreenLayout>
+    </Layout>
   );
 }

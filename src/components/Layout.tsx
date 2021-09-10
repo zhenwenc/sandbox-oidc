@@ -4,17 +4,17 @@ import Link from 'next/link';
 
 import { Box, BoxLikeProps, Button, Text, OverlayContainer } from '@navch-ui/core';
 
-export type FullscreenLayoutProps = BoxLikeProps & {
+export type LayoutProps = BoxLikeProps & {
   readonly noHeader?: boolean;
 };
 
-export const FullscreenLayout: React.FC<FullscreenLayoutProps> = props => {
+export const Layout: React.FC<LayoutProps> = props => {
   const { children, noHeader, ...boxProps } = props;
 
   return (
     <Box flex column background="tint3" style={{ height: 'calc(100vh)' }}>
       <Head>
-        <title>{'OIDC Demo'}</title>
+        <title>{'OIDC • Sandbox'}</title>
       </Head>
 
       {!noHeader && (
