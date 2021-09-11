@@ -1,5 +1,5 @@
 {
-  "extends": "@navch-ui/core",
+  "extends": "@navch/common",
   "compilerOptions": {
     "lib": [
       "ES2015",
@@ -24,7 +24,8 @@
       "@components/*": [
         "src/components/*"
       ]
-    }
+    },
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "next-env.d.ts",
