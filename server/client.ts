@@ -42,8 +42,12 @@ export namespace Metadata {
   });
 }
 
+export type ClientContext = t.TypeOf<typeof ClientContext.codec>;
+export namespace ClientContext {
+  export const codec = t.type({ publicURL: t.string });
+}
+
 export type OIDCClientOptions = {
-  readonly publicURL: string;
   readonly storage: Storage;
   readonly clients: Partial<Metadata>[] | undefined;
 };
@@ -58,45 +62,54 @@ export type OIDCClientOptions = {
  * http://localhost:8080/oauth
  * https://sandbox-oidc.herokuapp.com/oauth
  */
-export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
+export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
   const discover = memoize(Issuer.discover, { async: true, max: 10, maxAge: 5000 });
+
+  // We hosts the Provider in a sub-path, it may require redirect during discovery.
   custom.setHttpOptionsDefaults({ followRedirect: true });
 
-  const defaults: Required<Metadata> = {
-    issuer: options.publicURL,
-    client_id: 'oidc-client',
-    client_secret: 'oidc-secret',
-    redirect_uri: `${options.publicURL}/oauth/callback`,
-    nonce: undefined,
-  };
+  const withContext = (publicURL: string) => {
+    const defaultClient: Required<Metadata> = {
+      issuer: publicURL,
+      client_id: 'oidc-client',
+      client_secret: 'oidc-secret',
+      redirect_uri: `${publicURL}/oauth/callback`,
+      nonce: undefined,
+    };
 
-  const getMetadata = async (key: string | undefined): Promise<Metadata | undefined> => {
-    if (!t.string.is(key)) return undefined;
+    const getMetadata = async (key: string | undefined): Promise<Metadata | undefined> => {
+      if (typeof key !== 'string') return undefined;
 
-    const registered = await options.storage.getItem(key);
-    if (registered) {
-      return validate(registered, Metadata.codec);
-    }
+      const registered = await options.storage.getItem(key);
+      if (registered) {
+        return validate(registered, Metadata.codec);
+      }
 
-    const predefined = options.clients?.find(({ client_id }) => {
-      return client_id && Metadata.withClientId(client_id) === key;
-    });
-    if (predefined) {
-      return validate({ ...defaults, ...predefined }, Metadata.codec);
-    }
-    return Metadata.withClientId(defaults.client_id) ? R.clone(defaults) : undefined;
+      const predefined = options.clients?.find(({ client_id }) => {
+        return client_id && Metadata.withClientId(client_id) === key;
+      });
+      if (predefined) {
+        return validate(predefined, Metadata.codec);
+      }
+      return Metadata.withClientId(defaultClient.client_id) ? defaultClient : undefined;
+    };
+
+    return { defaultClient, getMetadata };
   };
 
   return [
     makeHandler({
       route: '/oauth/clients',
       method: 'GET',
-      handle: async (_1, _2, { res, logger }) => {
+      context: ClientContext.codec,
+      handle: async (_1, _2, { res, logger, publicURL }) => {
         logger.debug('Return predefined OIDC clients');
+
+        const service = withContext(publicURL);
         const results = await threadP(
-          [defaults, ...(options.clients || [])],
+          [service.defaultClient, ...(options.clients || [])],
           R.map(x => Metadata.withClientId(validate(x.client_id, t.string))),
-          R.pipe(R.map(getMetadata), s => Promise.all(s)),
+          R.pipe(R.map(service.getMetadata), s => Promise.all(s)),
           R.filter(isNotNullish),
           R.map(R.pick(['issuer', 'client_id', 'redirect_uri']))
         );
@@ -106,13 +119,15 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
     makeHandler({
       route: '/oauth/clients',
       method: 'POST',
+      context: ClientContext.codec,
       input: { body: Metadata.codec },
-      handle: async (_1, args, { res, logger }) => {
-        const { client_id, redirect_uri = defaults.redirect_uri } = args;
+      handle: async (_1, args, { res, logger, publicURL }) => {
+        const service = withContext(publicURL);
+        const { client_id, redirect_uri = service.defaultClient.redirect_uri } = args;
         const metadata = { ...args, redirect_uri };
         logger.info('Register OIDC verifier with settings', metadata);
 
-        if (defaults.client_id === client_id) {
+        if (service.defaultClient.client_id === client_id) {
           throw new ForbiddenError({ reason: 'Default OIDC clients is protected!' });
         }
         if (options.clients?.some(x => x.client_id === client_id)) {
@@ -125,6 +140,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
     makeHandler({
       route: '/oauth/authorize',
       middlewares: [express.urlencoded({ extended: false })],
+      context: ClientContext.codec,
       input: {
         query: t.type({
           /**
@@ -159,9 +175,10 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
           login_hint: t.union([t.string, t.undefined]),
         }),
       },
-      handle: async (_1, args, { res, logger }) => {
+      handle: async (_1, args, { res, logger, publicURL }) => {
         logger.info('Generate authorization request with parameters', args);
         const { client_id, response_type, response_mode, redirect_uri, login_hint } = args;
+        const service = withContext(publicURL);
 
         const state = base64URLEncode(randomBytes(32));
         const nonce = base64URLEncode(randomBytes(32));
@@ -169,8 +186,12 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
         const verifier = base64URLEncode(Buffer.from(state));
         const challenge = base64URLEncode(sha256(verifier));
 
-        const stored = await getMetadata(client_id && Metadata.withClientId(client_id));
-        const metadata = { ...(stored ?? defaults), ...R.reject(R.isNil, { redirect_uri, nonce }) };
+        const stored = await service.getMetadata(client_id && Metadata.withClientId(client_id));
+        const metadata = {
+          ...R.reject(R.isNil, service.defaultClient),
+          ...R.reject(R.isNil, stored || {}),
+          ...R.reject(R.isNil, { redirect_uri, nonce }),
+        };
 
         const issuer = await discover(metadata.issuer);
         const client = new issuer.Client({ client_id: metadata.client_id });
@@ -248,6 +269,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
       route: '/oauth/token',
       method: 'POST',
       middlewares: [express.json()],
+      context: ClientContext.codec,
       input: {
         body: t.type({
           /**
@@ -269,12 +291,13 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
           id_token: t.union([t.string, t.undefined]),
         }),
       },
-      handle: async (_self, args, { logger }) => {
+      handle: async (_self, args, { logger, publicURL }) => {
         logger.info('Received token request with authorization code', args);
         const { state, code } = args;
+        const service = withContext(publicURL);
 
         const verifier = base64URLEncode(Buffer.from(state));
-        const metadata = await getMetadata(Metadata.withVerifier(verifier));
+        const metadata = await service.getMetadata(Metadata.withVerifier(verifier));
         if (!metadata) {
           throw new NotFoundError(`No OpenID metadata found for verifier: ${verifier}`);
         }
@@ -287,7 +310,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
         // must perform on the server-side as it requires client credentials.
         //
         const exchangeToken = client.callback(
-          redirect_uri ?? `${options.publicURL}/oauth/callback`,
+          redirect_uri ?? `${publicURL}/oauth/callback`,
           { code, state },
           { nonce, state, code_verifier: verifier }
         );
@@ -308,6 +331,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
     }),
     makeHandler({
       route: '/oauth/logout',
+      context: ClientContext.codec,
       input: {
         query: t.type({
           /**
@@ -317,8 +341,9 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(async options => {
           client_id: t.union([t.string, t.undefined]),
         }),
       },
-      handle: async (_self, { client_id }, { res, logger }) => {
-        const metadata = await getMetadata(client_id && Metadata.withClientId(client_id));
+      handle: async (_self, { client_id }, { res, logger, publicURL }) => {
+        const service = withContext(publicURL);
+        const metadata = await service.getMetadata(client_id && Metadata.withClientId(client_id));
         if (!metadata) {
           throw new NotFoundError('No OpenID metadata found for Relying Party');
         }

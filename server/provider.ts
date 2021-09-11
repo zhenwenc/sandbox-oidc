@@ -1,30 +1,23 @@
 import * as t from 'io-ts';
 import Chance from 'chance';
+import memoize from 'memoizee';
 import { URLSearchParams } from 'url';
-import {
-  errors as OIDCErrors,
-  Provider as OIDCProvider,
-  KoaContextWithOIDC as OIDCContext,
-  InteractionResults as OIDCInteractionResults,
-  AdapterFactory as OIDAdapterFactory,
-} from 'oidc-provider';
+import { errors, Provider, KoaContextWithOIDC, InteractionResults, AdapterFactory } from 'oidc-provider';
 
-import { makeHandler, makeRouter, getRequestContext } from '@navch/express';
+import { Logger } from '@navch/common';
+import { makeHandler, makeRouter, middlewares } from '@navch/express';
 
 export type OIDCProviderOptions = {
-  readonly publicURL: string;
-  readonly adapter: OIDAdapterFactory | undefined;
+  readonly adapter: AdapterFactory | undefined;
 };
 
-/**
- * OpenID Connect Provider that handles an Authentication Request.
- *
- * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
- * https://github.com/panva/node-oidc-provider/tree/main/docs
- * https://github.com/panva/node-oidc-provider/blob/main/docs/README.md#user-flows
- */
-export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options => {
-  const provider = new OIDCProvider(options.publicURL, {
+export type ProviderContext = {
+  readonly logger: Logger;
+  readonly publicURL: string;
+};
+
+const buildProviderFunc = (context: ProviderContext, options: OIDCProviderOptions) => {
+  const provider = new Provider(context.publicURL, {
     adapter: options.adapter,
     clients: [
       {
@@ -58,7 +51,7 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
          *
          * NOTE: We allow wildcard redirect uri, see below.
          */
-        redirect_uris: [`${options.publicURL}/oauth/callback`],
+        redirect_uris: [`${context.publicURL}/oauth/callback`],
       },
       {
         client_id: 'oidc-client-implicit',
@@ -74,7 +67,7 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
          * This client supports Implicit Flow that insecurel redirect URIs are
          * not allowed.
          */
-        redirect_uris: [`${options.publicURL}/oauth/callback`],
+        redirect_uris: [`${context.publicURL}/oauth/callback`],
       },
     ],
     /**
@@ -170,10 +163,10 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
      *
      * https://github.com/panva/node-oidc-provider/blob/main/docs/README.md#accounts
      */
-    findAccount: async (ctx, sub) => ({
+    findAccount: async (_ctx, sub) => ({
       accountId: sub,
       claims: async (use, scope) => {
-        const { logger } = getRequestContext(ctx.req);
+        const { logger } = context;
         logger.info('Generate user profile for subject', { sub, use, scope });
 
         const chance = new Chance(sub);
@@ -229,8 +222,8 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
    */
   provider.Client.prototype.redirectUriAllowed = _redirectUri => true;
 
-  function handleClientAuthErrors(ctx: OIDCContext, err: OIDCErrors.OIDCProviderError) {
-    const { logger } = getRequestContext(ctx.req);
+  function handleClientAuthErrors(ctx: KoaContextWithOIDC, err: errors.OIDCProviderError) {
+    const { logger } = context;
     const { authorization } = ctx.headers;
     const { client, body, params } = ctx.oidc;
     if (err.statusCode === 401 && err.message === 'invalid_client') {
@@ -252,19 +245,38 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
   // Trusting TLS offloading proxies
   provider.proxy = true;
 
+  return provider;
+};
+
+/**
+ * OpenID Connect Provider that handles an Authentication Request.
+ *
+ * https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+ * https://github.com/panva/node-oidc-provider/tree/main/docs
+ * https://github.com/panva/node-oidc-provider/blob/main/docs/README.md#user-flows
+ */
+export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(options => {
+  const buildProvider = memoize(buildProviderFunc, {
+    normalizer: ([{ publicURL }]) => publicURL,
+    max: 10,
+    maxAge: 30000,
+  });
+
   return [
     makeHandler({
       route: '/oidc/interaction/:uid',
       input: {
         params: t.type({ uid: t.union([t.string, t.undefined]) }),
       },
-      noCache: true,
-      handle: async (_1, _2, { req, res, logger }) => {
+      context: t.type({ publicURL: t.string }),
+      middlewares: [middlewares.setNoCache],
+      handle: async (_1, _2, { req, res, logger, publicURL }) => {
+        const provider = buildProvider({ publicURL, logger }, options);
         const { prompt, uid, session } = await provider.interactionDetails(req, res);
         logger.info('Received interaction request', { prompt, uid, session });
 
         if (prompt.name === 'login') {
-          const reply_to = `${options.publicURL}/oidc/interaction/${uid}/submit`;
+          const reply_to = `${publicURL}/oidc/interaction/${uid}/submit`;
           const query = new URLSearchParams({ ...prompt.details, reply_to });
           return res.redirect('/oauth/interaction?' + query.toString());
         }
@@ -277,8 +289,10 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
         params: t.type({ uid: t.union([t.string, t.undefined]) }),
         query: t.type({ code: t.union([t.string, t.undefined]) }),
       },
-      noCache: true,
-      handle: async (_1, { code }, { req, res, logger }) => {
+      context: t.type({ publicURL: t.string }),
+      middlewares: [middlewares.setNoCache],
+      handle: async (_1, { code }, { req, res, logger, publicURL }) => {
+        const provider = buildProvider({ publicURL, logger }, options);
         const { uid, params, grantId } = await provider.interactionDetails(req, res);
         const { client_id, scope } = params;
 
@@ -306,7 +320,7 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
           grant.addOIDCScope(scope as string);
         }
 
-        const result: OIDCInteractionResults = {
+        const result: InteractionResults = {
           login: { accountId, remember: false },
           consent: { grantId: await grant.save() },
         };
@@ -320,11 +334,21 @@ export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(async options =
         res.redirect(redirectTo);
       },
     }),
-    router => {
-      router.all('/.well-known/openid-configuration', (req, res) => {
+    makeHandler({
+      route: '/.well-known/openid-configuration',
+      handle: (_1, _2, { req, res }) => {
         res.redirect(301, '/oidc' + req.path);
-      });
-      router.use('/oidc', provider.callback());
-    },
+      },
+    }),
+    makeHandler({
+      route: '/oidc/*',
+      noDefaultMiddlewares: true,
+      context: t.type({ publicURL: t.string }),
+      handle: (_1, _2, { req, res, logger, publicURL }) => {
+        req.url = req.url.replace(/^\/oidc/, ''); // rewrite
+        const provider = buildProvider({ publicURL, logger }, options);
+        provider.callback()(req, res);
+      },
+    }),
   ];
 });
