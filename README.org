@@ -1,0 +1,18 @@
+#+AUTHOR:    Frederick Z. Cai
+#+EMAIL:     frederick.cai@gmail.com
+#+DESCRIPTION: OpdenID Connect Sandbox
+#+LANGUAGE: en
+#+STARTUP:  indent
+#+OPTIONS:  H:4 num:nil toc:2 p:t
+
+#+HTML: <div align="center">
+#+HTML:   <div>
+#+HTML:     An Express app that manages the interactions between components in the
+#+HTML:     <a href="https://oauth.net/2/">OAuth 2.0</a> workflows.
+#+HTML:   </div>
+#+HTML:   </br>
+#+HTML:   <a href="https://opensource.org/licenses/Apache-2.0">
+#+HTML:     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"
+#+HTML:          alt="license-apache-2.0" />
+#+HTML:   </a>
+#+HTML: </div>
