@@ -1,47 +1,171 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { source as markdown } from 'common-tags';
+import Markdown from 'markdown-to-jsx';
 
-import { Box, Button, Card, Text, Input, Modal, Form, FormField, useForm } from '@navch-ui/core';
+import {
+  Box,
+  Button,
+  Card,
+  Text,
+  Input,
+  Modal,
+  Form,
+  FormField,
+  Expansion,
+  Labeled,
+  Tooltip,
+  Switch,
+  IconPin,
+  IconHelpOutline,
+  useForm,
+} from '@navch-ui/core';
 import { useLatestCallback } from '@navch-ui/hooks';
+import { useMount } from 'react-use';
 
-import { ClientDetails, useOAuthClient } from '@services/client';
+import { ClientDetails, ClientAuthParams, useOAuthClient } from '@services/client';
 import { Layout } from '@components/Layout';
 import { ClientTable } from '@components/ClientTable';
 
 export default function Index() {
+  const [isExpanded, setExpanded] = useState(false);
   const [isModalOpen, setModalOpen] = useState(false);
   const showModal = useLatestCallback(() => setModalOpen(true));
   const hideModal = useLatestCallback(() => setModalOpen(false));
 
   const oauth = useOAuthClient();
+
   const registrationForm = useForm<ClientDetails>({
-    onSubmit: ({ values }) => {
+    onSubmit: useLatestCallback(({ values }) => {
       oauth.setClient(values);
       hideModal();
+    }),
+  });
+
+  const authParamsForm = useForm<ClientAuthParams>({
+    onChange: ({ values }) => {
+      oauth.setAuthParams(values);
     },
   });
 
+  // Synchronize client customizations to storage
+  useEffect(() => {
+    oauth.setAuthParams({ enabled: isExpanded });
+  }, [isExpanded]);
+
+  // Rehydrate client customizations when mounted
+  useMount(() => {
+    const authParams = oauth.getAuthParams();
+    setExpanded(authParams.enabled ?? false);
+    authParamsForm.findField('login_hint', true).setValue(authParams.login_hint);
+  });
+
+  const instructions = [
+    {
+      name: 'Register an OIDC client',
+      hints: markdown`
+        Apart from the predefined OIDC clients, you can also hook up your own OIDC
+        providers. They must support Authorization Code Flow.
+
+        <br/>
+
+        The client credentials are stored in your browser's local storage. They will
+        be sent to, and temporarily stored on, the server-side before initiating an
+        authentication request for authorization code exchange.
+
+        <br/>
+
+        Use a sandbox OIDC client should you have security concerns. You are welcome
+        to inspect the source code of this application.
+      `,
+      actions: <Button onClick={showModal}>{'Register Client'}</Button>,
+    },
+    {
+      name: `Add allowed redirect URI to client: ${oauth.redirectUri}`,
+    },
+    {
+      name: 'Specify extra authorization parameters',
+      hints: markdown`
+        The specified parameters will be sent as part of the authentication requests.
+        Note that they may not be the same as defined in the OIDC specification, read
+        the source code for details.
+
+        <br/>
+
+        The values are persisted across consecutive authentication requests.
+      `,
+      actions: <Switch checked={isExpanded} onChange={setExpanded} ph={5} />,
+      expansion: (
+        <Expansion expanded={isExpanded} animated>
+          <Form form={authParamsForm} padded>
+            <FormField field="login_hint" hint="Prepopulated value for authentication prompts">
+              <Input autoFocus />
+            </FormField>
+          </Form>
+        </Expansion>
+      ),
+    },
+    {
+      name: 'Initiate authentication request with an available client',
+      hints: markdown`
+        The actual authentication requests are generated on the server-side with
+        desire default parameters.
+
+        <br/>
+
+        You will be redirected to the callback screen once authenticated.
+      `,
+    },
+  ];
+
   return (
-    <Layout align="center" justify="start" style={{ overflow: 'auto' }}>
-      <Card raised fluid mt={8} style={{ width: 800 }}>
+    <Layout scrollable align="center" justify="start">
+      <Card raised fluid style={{ width: 800 }}>
         <Box padded baseline background="tint2" textAlign="center">
           <Text bold>{'Instructions'}</Text>
         </Box>
-        <Box baseline flex align="center" justify="between">
-          <Text padded>{'❶ Register an OIDC client (optional).'}</Text>
-          <Button onClick={showModal} mh={2}>
-            {'Register Client'}
-          </Button>
-        </Box>
-        <Box baseline>
-          <Text padded>{`❷ Add allowed redirect URL to client: ${oauth.redirectUri}.`}</Text>
-        </Box>
-        <Box>
-          <Text padded>{`❸ Initiate authentication requests with an available client.`}</Text>
-        </Box>
+
+        {instructions.map(({ name, hints, actions, expansion }, idx) => {
+          const tooltip = hints && (
+            <Tooltip
+              title={
+                <Box style={{ maxWidth: 500 }}>
+                  <Markdown
+                    options={{
+                      overrides: {
+                        p: {
+                          component: Text,
+                          props: { variant: 'subtitle2', inverse: true },
+                        },
+                      },
+                    }}
+                  >
+                    {hints}
+                  </Markdown>
+                </Box>
+              }
+              placement="right"
+            >
+              <Text style={{ lineHeight: 1 }}>
+                <IconHelpOutline />
+              </Text>
+            </Tooltip>
+          );
+          return (
+            <Box key={name} topline={idx > 0}>
+              <Box flex align="center" justify="between">
+                <Labeled padded prefixIcon={<IconPin />} suffixIcon={tooltip}>
+                  <Text>{name}</Text>
+                </Labeled>
+                <Box ph={2}>{actions}</Box>
+              </Box>
+              {expansion}
+            </Box>
+          );
+        })}
       </Card>
 
       <Card raised mt={4} style={{ width: 800 }}>
-        <ClientTable />
+        <ClientTable onAuthorize={oauth.authorize} />
       </Card>
 
       <Modal

@@ -17,6 +17,11 @@ export type ClientDetails = {
   client_secret: string;
 };
 
+export type ClientAuthParams = {
+  enabled?: boolean;
+  login_hint?: string;
+};
+
 async function registerClient(input: ClientDetails): Promise<unknown> {
   try {
     const resp = await fetch('/oauth/clients', {
@@ -49,6 +54,7 @@ async function fetchStaticClients(): Promise<ClientInfo[]> {
 
 export function useOAuthClient() {
   const [storedClients = [], setStoredClients] = useLocalStorage<ClientDetails[]>('oidc:sandbox:clients');
+  const [storedParams, setStoredParams] = useLocalStorage<ClientAuthParams>('oidc:sandbox:client-params');
   const [fetchedStaticClients, doFetchStaticClients] = useAsyncFn(fetchStaticClients);
   const [redirectUri, setRedirectUri] = useState('');
 
@@ -76,7 +82,7 @@ export function useOAuthClient() {
         ...remoteClients.map(x => ({ ...x, remote: true })),
         ...storedClients.map(x => ({ ...x, remote: false })),
       ];
-    }, [remoteClients, storedClients]),
+    }, [isMounted(), remoteClients, storedClients]),
     /**
      * Persist the given OIDC client into local storage. Existing client with the
      * same client `domain` and `client_id` will be replaced.
@@ -101,12 +107,28 @@ export function useOAuthClient() {
       setStoredClients(updated);
     }),
     /**
+     * Returns the stored custom authentication request params in browser storage.
+     */
+    getAuthParams: useLatestCallback(() => {
+      return { isReady: isMounted(), ...storedParams };
+    }),
+    /**
+     * Updates the custom authentication request params to have persisted values
+     * across consecutive redirects.
+     */
+    setAuthParams: useLatestCallback((updates: Partial<ClientAuthParams>) => {
+      if (!isMounted()) return;
+      setStoredParams({ ...storedParams, ...updates });
+    }),
+    /**
      * Initiate authentication requests using configurations for the given client.
      *
      * This function also registers the client in backend server in order to
      * exchange access tokens when succeed.
      */
     authorize: useLatestCallback(async ({ issuer, client_id }: ClientInfo) => {
+      const { enabled, ...params } = storedParams || {};
+
       const storedClient = storedClients.find(isSameClient({ issuer, client_id }));
       if (storedClient) {
         await registerClient(storedClient);
@@ -119,7 +141,7 @@ export function useOAuthClient() {
 
       window.location.href = stringifyUrl({
         url: `${window.location.origin}/oauth/authorize`,
-        query: { client_id, redirect_uri: redirectUri },
+        query: { ...(enabled ? params : {}), client_id, redirect_uri: redirectUri },
       });
     }),
   };

@@ -12,7 +12,7 @@ export const Layout: React.FC<LayoutProps> = props => {
   const { children, noHeader, ...boxProps } = props;
 
   return (
-    <Box flex column background="tint3" style={{ height: 'calc(100vh)' }}>
+    <Box flex column background="tint3" style={{ minHeight: 'calc(100vh)' }}>
       <Head>
         <title>{'OIDC • Sandbox'}</title>
       </Head>
@@ -27,7 +27,7 @@ export const Layout: React.FC<LayoutProps> = props => {
         </Box>
       )}
 
-      <Box flex={1} column justify="center" align="center" {...boxProps}>
+      <Box flex={1} column pv={8} justify="center" align="center" {...boxProps}>
         {children}
       </Box>
 

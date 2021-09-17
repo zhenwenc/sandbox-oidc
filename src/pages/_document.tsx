@@ -14,8 +14,8 @@ export interface DocumentProps {
 
 export default class RootDocument extends Document<DocumentProps> {
   static async getInitialProps({ renderPage }: DocumentContext) {
-    const { html, ...rest } = renderStatic(() => renderPage() as unknown);
-    return { ...(html as any), ...rest };
+    const { html, ...rest } = renderStatic(() => renderPage());
+    return { ...html, ...rest };
   }
 
   render() {
