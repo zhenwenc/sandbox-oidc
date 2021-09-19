@@ -119,7 +119,7 @@ export default function Index() {
 
   return (
     <Layout scrollable align="center" justify="start">
-      <Card raised fluid style={{ width: 800 }}>
+      <Card raised fluid style={{ width: 800, maxWidth: '100vw' }}>
         <Box padded baseline background="tint2" textAlign="center">
           <Text bold>{'Instructions'}</Text>
         </Box>
@@ -164,7 +164,7 @@ export default function Index() {
         })}
       </Card>
 
-      <Card raised mt={4} style={{ width: 800 }}>
+      <Card raised mt={4} style={{ width: 800, maxWidth: '100vw' }}>
         <ClientTable onAuthorize={oauth.authorize} />
       </Card>
 

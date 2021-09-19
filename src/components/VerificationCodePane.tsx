@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useKeyPressEvent } from 'react-use';
 import { Box, Text, Message } from '@navch-ui/core';
+import { makeStyles } from '@navch-ui/styles';
 
 type VerificationCodePaneProps = {
   initialValue?: string;
@@ -10,14 +11,15 @@ type VerificationCodePaneProps = {
 const CodeSize = 6; // number of chars
 const CodeRegex = new RegExp(`^\\d{${CodeSize}}$`);
 
-function CodeBox(props: { char?: string }) {
-  const { char = '' } = props;
+const CodeBox: React.FC<{ char?: string; autoFocus?: boolean }> = props => {
+  const { char = '', autoFocus } = props;
+  const { styles, css } = useStyles();
   return (
-    <Box fluid flex m={2} border="emphasis" justify="center" align="center" style={{ height: 42 }}>
-      <Text variant="h6">{char}</Text>
+    <Box fluid flex m={2} align="center" justify="center" border="emphasis" style={{ width: 42, height: 42 }}>
+      <input type="tel" className={css(styles.codePane_input)} value={char} autoFocus={autoFocus} />
     </Box>
   );
-}
+};
 
 export function VerificationCodePane(props: VerificationCodePaneProps) {
   const { initialValue, onSubmit } = props;
@@ -60,7 +62,7 @@ export function VerificationCodePane(props: VerificationCodePaneProps) {
 
       <Box flex padded pv={6}>
         <Box fluid flex mr={3}>
-          <CodeBox char={code[0]} />
+          <CodeBox char={code[0]} autoFocus={true} />
           <CodeBox char={code[1]} />
           <CodeBox char={code[2]} />
         </Box>
@@ -81,3 +83,17 @@ export function VerificationCodePane(props: VerificationCodePaneProps) {
     </Box>
   );
 }
+
+export const useStyles = makeStyles(theme => ({
+  codePane_input: {
+    ...theme.font.h6,
+    outline: 'none',
+    border: 'none',
+    boxShadow: 'none',
+    textAlign: 'center',
+    color: theme.color.text.base,
+    caretColor: 'transparent',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+  },
+}));
