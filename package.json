@@ -12,6 +12,7 @@
     "start": "node build/server/app.js",
     "start:dev": "nodemon --watch 'server/**/*.*' --exec ts-node -T --files server/app.ts",
     "build:web": "next build && next export -o dist",
+    "format": "prettier --write --list-different ./src ./server",
     "heroku-postbuild": "tsc -b . && next build"
   },
   "dependencies": {
@@ -53,5 +54,13 @@
     "@types/morgan": "1.9.3",
     "@types/oidc-provider": "7.4.3",
     "@types/ramda": "0.27.44"
+  },
+  "prettier": {
+    "arrowParens": "avoid",
+    "printWidth": 110,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "quoteProps": "consistent"
   }
 }
