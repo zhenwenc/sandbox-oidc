@@ -170,6 +170,12 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
            */
           redirect_uri: t.union([t.string, t.undefined]),
           /**
+           * An optional preferred languages and scripts for the user interface,
+           * represented as a space-separated list of BCP47 [RFC5646] language tag
+           * values, ordered by preference.
+           */
+          ui_locales: t.union([t.string, t.undefined]),
+          /**
            * An optional value to prepopulate when prompting for authentication.
            */
           login_hint: t.union([t.string, t.undefined]),
@@ -177,7 +183,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
       },
       handle: async (_1, args, { res, logger, publicURL }) => {
         logger.info('Generate authorization request with parameters', args);
-        const { client_id, response_type, response_mode, redirect_uri, login_hint } = args;
+        const { client_id, response_type, response_mode, redirect_uri, ...rest } = args;
         const service = withContext(publicURL);
 
         const state = base64URLEncode(randomBytes(32));
@@ -256,9 +262,9 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
            */
           code_challenge_method: 'S256',
           /**
-           * Forward Login Hint if provided.
+           * Forward the optional auxiliary parameters if provided.
            */
-          login_hint,
+          ...R.reject(R.isNil, rest),
         };
 
         logger.info('Generated authorization request', params);

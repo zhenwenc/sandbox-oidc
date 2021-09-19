@@ -91,14 +91,33 @@ export default function Index() {
 
         <br/>
 
+        The application does **not** validate the given parameter values, they will be
+        forwarded as it is. The interpretation of the parameters is determined by the
+        targeted OIDC provider, read their documentation for reference.
+
+        <br/>
+
         The values are persisted across consecutive authentication requests.
       `,
       actions: <Switch checked={isExpanded} onChange={setExpanded} ph={5} />,
       expansion: (
         <Expansion expanded={isExpanded} animated>
           <Form form={authParamsForm} padded>
-            <FormField field="login_hint" hint="Prepopulated value for authentication prompts">
-              <Input autoFocus />
+            <FormField
+              span={6}
+              field="login_hint"
+              label="Login Hint"
+              hint="Prepopulated value for authentication prompts"
+            >
+              <Input />
+            </FormField>
+            <FormField
+              span={6}
+              field="ui_locales"
+              label="UI Locales"
+              hint="Space-separated list of preferred languages"
+            >
+              <Input />
             </FormField>
           </Form>
         </Expansion>
