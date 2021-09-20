@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import * as t from 'io-ts';
 import { isEmpty } from 'ramda';
 import { useAsync } from 'react-use';
 import { Card, Text, Message } from '@navch-ui/core';
@@ -13,18 +13,29 @@ type InteractionResultProps = {
    *
    *   { error: string, error_details: string }
    */
-  params: Record<string, string>;
+  params: Record<string, unknown>;
   /**
    * When `true`, the component will fetch and display the profile.
    */
   showDetails?: boolean;
 };
 
-export const InteractionResult: FC<InteractionResultProps> = props => {
+export const SuccessResult = t.type({
+  code: t.string,
+  state: t.string,
+});
+
+export const FailureResult = t.type({
+  error: t.string,
+  error_details: t.string,
+  state: t.union([t.string, t.undefined]),
+});
+
+export const InteractionResult: React.FC<InteractionResultProps> = props => {
   const { params, showDetails = false } = props;
 
   const fetchToken = useAsync(async () => {
-    if (!showDetails || !params.code || !params.state) return;
+    if (!showDetails || !SuccessResult.is(params)) return;
 
     const resp = await fetch('/oauth/token', {
       method: 'POST',
@@ -37,7 +48,7 @@ export const InteractionResult: FC<InteractionResultProps> = props => {
     if (data && data.error) throw data.error;
 
     return data;
-  }, [params.code, params.state]);
+  }, [JSON.stringify(params)]);
 
   const render = (title: string, data: ReturnType<typeof useAsync>) => {
     return data.error ? (
@@ -63,7 +74,7 @@ export const InteractionResult: FC<InteractionResultProps> = props => {
         {render('Authenticated', { loading: isEmpty(params), value: params as unknown })}
       </Card>
 
-      {showDetails && (
+      {showDetails && SuccessResult.is(params) && (
         <Card raised style={{ width: '100%', maxWidth: 600, maxHeight: '50vh' }} mt={3}>
           {render('Claims', fetchToken)}
         </Card>
