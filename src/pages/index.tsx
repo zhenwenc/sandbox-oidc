@@ -184,7 +184,11 @@ export default function Index() {
       </Card>
 
       <Card raised mt={4} style={{ width: 800, maxWidth: '100vw' }}>
-        <ClientTable onAuthorize={oauth.authorize} />
+        <ClientTable
+          clients={oauth.clients}
+          onAuthorize={oauth.authorize}
+          onRemoveClient={oauth.removeClient}
+        />
       </Card>
 
       <Modal

@@ -2,10 +2,12 @@ import React from 'react';
 import { Box, Button, Text, Table, TableColumnProps, IconClose } from '@navch-ui/core';
 import { useLatestCallback } from '@navch-ui/hooks';
 
-import { ClientInfo, useOAuthClient } from '@services/client';
+import { ClientInfo } from '@services/client';
 
 export type ClientTableProps = {
+  clients: ClientInfo[];
   onAuthorize: (client: ClientInfo) => unknown;
+  onRemoveClient: (client: ClientInfo) => unknown;
 };
 
 const IssuerPane = ({ row }: { row: ClientInfo }) => {
@@ -17,8 +19,7 @@ const IssuerPane = ({ row }: { row: ClientInfo }) => {
 };
 
 export const ClientTable: React.FC<ClientTableProps> = props => {
-  const { onAuthorize } = props;
-  const { clients, removeClient } = useOAuthClient();
+  const { clients, onAuthorize, onRemoveClient } = props;
 
   const columns: TableColumnProps<ClientInfo>[] = [
     {
@@ -54,7 +55,7 @@ export const ClientTable: React.FC<ClientTableProps> = props => {
             variant="outlined"
             ml={2}
             disabled={row.original.remote}
-            onClick={() => removeClient(row.original)}
+            onClick={() => onRemoveClient(row.original)}
           >
             <IconClose />
           </Button>
