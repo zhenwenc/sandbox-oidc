@@ -38,7 +38,7 @@ export default function Index() {
 
   const registrationForm = useForm<ClientDetails>({
     onSubmit: useLatestCallback(({ values }) => {
-      oauth.setClient(values);
+      oauth.setClient({ ...values, id: selectedClient?.id });
       setSelectedClient(undefined);
       hideModal();
     }),
@@ -57,10 +57,6 @@ export default function Index() {
     }
     setSelectedClient(client);
     setModalOpen(true);
-
-    // registrationForm.findField('issuer', true).setValue(client.issuer);
-    // registrationForm.findField('client_id', true).setValue(client.client_id);
-    // registrationForm.findField('client_secret', true).setValue(client.client_secret);
   });
 
   // Synchronize client customizations to storage

@@ -1,17 +1,22 @@
 import * as R from 'ramda';
+import { v4 as uuid } from 'uuid';
 import { stringifyUrl } from 'query-string';
 import { useMemo, useState } from 'react';
 import { useAsyncFn, useMount, useMountedState, useLocalStorage } from 'react-use';
 import { useLatestCallback } from '@navch-ui/hooks';
 import { thread } from '@navch/common';
 
-export type ClientInfo = {
-  issuer: string;
-  client_id: string;
+export type ClientMeta = {
+  id?: string;
   remote?: boolean;
 };
 
-export type ClientDetails = {
+export type ClientInfo = ClientMeta & {
+  issuer: string;
+  client_id: string;
+};
+
+export type ClientDetails = ClientMeta & {
   issuer: string;
   client_id: string;
   client_secret: string;
@@ -62,13 +67,30 @@ export function useOAuthClient() {
   const { value: remoteClients = [] } = fetchedStaticClients;
 
   const isSameClient = (a: ClientInfo) => (b: ClientInfo) => {
-    return R.equals([a.issuer, a.client_id], [b.issuer, b.client_id]);
+    return a.id !== undefined && b.id !== undefined
+      ? R.equals([a.id], [b.id])
+      : R.equals([a.issuer, a.client_id], [b.issuer, b.client_id]);
   };
 
   // Fetch data on client-side only
   useMount(async () => {
     setRedirectUri(`${window.location.origin}/oauth/callback`);
     await doFetchStaticClients();
+  });
+
+  // Migration the stored clients ;)
+  useMount(async () => {
+    let isUpdated = false;
+    const updated = storedClients.map(client => {
+      if (client.id === undefined) {
+        isUpdated = true;
+        return { id: uuid(), ...client };
+      }
+      return client;
+    });
+    if (isUpdated) {
+      setStoredClients(updated);
+    }
   });
 
   return {
@@ -84,25 +106,25 @@ export function useOAuthClient() {
       ];
     }, [isMounted(), remoteClients, storedClients]),
     /**
+     * Retrieves the details of a stored OIDC client.
+     */
+    getStoredClient: useLatestCallback(({ issuer, client_id }: ClientInfo) => {
+      return storedClients.find(isSameClient({ issuer, client_id }));
+    }),
+    /**
      * Persist the given OIDC client into local storage. Existing client with the
      * same client `domain` and `client_id` will be replaced.
      *
      * This function does NOT register the client in backend server.
      */
-    setClient: useLatestCallback(({ issuer, client_id, client_secret }: ClientDetails) => {
+    setClient: useLatestCallback((client: ClientDetails) => {
+      const { id, issuer, client_id, client_secret } = client;
       const updated = thread(
         storedClients,
-        R.reject(isSameClient({ issuer, client_id })),
-        R.concat([{ issuer, client_id, client_secret }])
+        R.reject(isSameClient({ id, issuer, client_id })),
+        R.concat([{ id: id || uuid(), issuer, client_id, client_secret }])
       );
       setStoredClients(updated);
-    }),
-    /**
-     * Retrieves the details of a stored OIDC client.
-     */
-    getStoredClient: useLatestCallback(({ issuer, client_id }: ClientInfo) => {
-      // const matcher = isSameClient({ issuer, client_id })
-      return storedClients.find(isSameClient({ issuer, client_id }));
     }),
     /**
      * Remove given OIDC client from local storage.
