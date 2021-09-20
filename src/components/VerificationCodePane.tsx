@@ -8,6 +8,8 @@ type VerificationCodePaneProps = {
   onSubmit?: (code: string) => unknown;
 };
 
+const noop = () => {};
+
 const CodeSize = 6; // number of chars
 const CodeRegex = new RegExp(`^\\d{${CodeSize}}$`);
 
@@ -16,7 +18,13 @@ const CodeBox: React.FC<{ char?: string; autoFocus?: boolean }> = props => {
   const { styles, css } = useStyles();
   return (
     <Box fluid flex m={2} align="center" justify="center" border="emphasis" style={{ width: 42, height: 42 }}>
-      <input type="tel" className={css(styles.codePane_input)} value={char} autoFocus={autoFocus} />
+      <input
+        type="tel"
+        className={css(styles.codePane_input)}
+        autoFocus={autoFocus}
+        value={char}
+        onChange={noop}
+      />
     </Box>
   );
 };
