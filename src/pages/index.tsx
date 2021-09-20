@@ -22,7 +22,7 @@ import {
 import { useLatestCallback } from '@navch-ui/hooks';
 import { useMount } from 'react-use';
 
-import { ClientDetails, ClientAuthParams, useOAuthClient } from '@services/client';
+import { ClientInfo, ClientDetails, ClientAuthParams, useOAuthClient } from '@services/client';
 import { Layout } from '@components/Layout';
 import { ClientTable } from '@components/ClientTable';
 
@@ -32,11 +32,14 @@ export default function Index() {
   const showModal = useLatestCallback(() => setModalOpen(true));
   const hideModal = useLatestCallback(() => setModalOpen(false));
 
+  const [selectedClient, setSelectedClient] = useState<ClientDetails>();
+
   const oauth = useOAuthClient();
 
   const registrationForm = useForm<ClientDetails>({
     onSubmit: useLatestCallback(({ values }) => {
       oauth.setClient(values);
+      setSelectedClient(undefined);
       hideModal();
     }),
   });
@@ -45,6 +48,19 @@ export default function Index() {
     onChange: ({ values }) => {
       oauth.setAuthParams(values);
     },
+  });
+
+  const handleEditClient = useLatestCallback((info: ClientInfo) => {
+    const client = oauth.getStoredClient(info);
+    if (!client) {
+      throw new Error(`No client found with ${JSON.stringify(info)}`);
+    }
+    setSelectedClient(client);
+    setModalOpen(true);
+
+    // registrationForm.findField('issuer', true).setValue(client.issuer);
+    // registrationForm.findField('client_id', true).setValue(client.client_id);
+    // registrationForm.findField('client_secret', true).setValue(client.client_secret);
   });
 
   // Synchronize client customizations to storage
@@ -187,6 +203,7 @@ export default function Index() {
         <ClientTable
           clients={oauth.clients}
           onAuthorize={oauth.authorize}
+          onModifyClient={handleEditClient}
           onRemoveClient={oauth.removeClient}
         />
       </Card>
@@ -199,13 +216,13 @@ export default function Index() {
         onConfirm={registrationForm.submit}
       >
         <Form form={registrationForm}>
-          <FormField field="issuer" required>
+          <FormField field="issuer" defaultValue={selectedClient?.issuer} required>
             <Input autoFocus />
           </FormField>
-          <FormField field="client_id" required>
+          <FormField field="client_id" defaultValue={selectedClient?.client_id} required>
             <Input />
           </FormField>
-          <FormField field="client_secret" required>
+          <FormField field="client_secret" defaultValue={selectedClient?.client_secret} required>
             <Input />
           </FormField>
         </Form>

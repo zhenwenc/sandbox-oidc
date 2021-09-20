@@ -98,6 +98,13 @@ export function useOAuthClient() {
       setStoredClients(updated);
     }),
     /**
+     * Retrieves the details of a stored OIDC client.
+     */
+    getStoredClient: useLatestCallback(({ issuer, client_id }: ClientInfo) => {
+      // const matcher = isSameClient({ issuer, client_id })
+      return storedClients.find(isSameClient({ issuer, client_id }));
+    }),
+    /**
      * Remove given OIDC client from local storage.
      *
      * This function does NOT sync the changes to backend server.
