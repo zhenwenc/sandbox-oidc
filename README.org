@@ -1,3 +1,4 @@
+#+TITLE:     OIDC Sandbox
 #+AUTHOR:    Frederick Z. Cai
 #+EMAIL:     frederick.cai@gmail.com
 #+DESCRIPTION: OpdenID Connect Sandbox
@@ -16,3 +17,17 @@
 #+HTML:          alt="license-apache-2.0" />
 #+HTML:   </a>
 #+HTML: </div>
+
+* User Guide
+
+You can run the application locally by calling:
+
+#+BEGIN_SRC sh :evel no
+# At the project root
+yarn install
+
+# Run the application in DEV mode
+PORT=3000 yarn start:dev
+#+END_SRC
+
+Then open [[http://localhost:3000/oauth][http://localhost:3000/oauth]] in your browser.

@@ -16,6 +16,8 @@ import { buildRedisAdapterFactory } from './adapter';
 import { buildInMemoryStorage, buildRedisStorage } from './storage';
 import { resolvePublicURL } from './utils';
 
+const port = process.env.PORT || '3000';
+
 const logger = new Logger({
   name: 'oidc',
   prettyPrint: process.env.NODE_ENV !== 'production',
@@ -60,10 +62,9 @@ app.use('/health', (_, res) => {
 });
 
 const contextHandler = setRequestContext(async () => {
-  if (!process.env.OIDC_PUBLIC_URL) {
-    throw new Error('Environment variable OIDC_PUBLIC_URL is required!');
-  }
-  const publicURL = await resolvePublicURL(process.env.OIDC_PUBLIC_URL);
+  const publicURL = !process.env.OIDC_PUBLIC_URL
+    ? `http://localhost:${port}`
+    : await resolvePublicURL(process.env.OIDC_PUBLIC_URL);
   return { publicURL, logger };
 });
 app.use(contextHandler);
@@ -83,7 +84,7 @@ app.use(buildOIDCClient({ storage, clients }));
     const webHandler = web.getRequestHandler();
     app.all('*', (req, res) => webHandler(req, res));
 
-    const server = app.listen(process.env.PORT || 3000, () => {
+    const server = app.listen(port, () => {
       logger.info(`Server listening at ${JSON.stringify(server.address())}`);
     });
   } catch (err) {
