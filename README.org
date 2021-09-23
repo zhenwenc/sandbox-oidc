@@ -18,9 +18,9 @@
 #+HTML:   </a>
 #+HTML: </div>
 
-* User Guide
+* Installation
 
-You can run the application locally by calling:
+Launch the application locally by running the following command:
 
 #+BEGIN_SRC sh :evel no
 # At the project root
