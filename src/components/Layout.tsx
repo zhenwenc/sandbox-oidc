@@ -21,7 +21,7 @@ export const Layout: React.FC<LayoutProps> = props => {
         <Box flex fluid layer={1} pv={3} ph={5} align="center" background="tint2">
           <Link href="/">
             <Button variant="text">
-              <Text variant="h6">{'Home'}</Text>
+              <Text variant="h6">{'OAuth 2.0 Sandbox'}</Text>
             </Button>
           </Link>
         </Box>
