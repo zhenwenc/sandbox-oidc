@@ -62,13 +62,22 @@ export default function Index() {
   // Synchronize client customizations to storage
   useEffect(() => {
     oauth.setAuthParams({ enabled: isExpanded });
+
+    const { enabled, isReady, ...oauthParams } = oauth.getAuthParams();
+    Object.entries(oauthParams).forEach(([key, value]) => {
+      try {
+        authParamsForm.findField(key, true).setValue(value);
+      } catch (err) {
+        console.error('Detected invalid oauth param', { key, value });
+        oauth.setAuthParams({ [key]: null });
+      }
+    });
   }, [isExpanded]);
 
   // Rehydrate client customizations when mounted
   useMount(() => {
     const authParams = oauth.getAuthParams();
     setExpanded(authParams.enabled ?? false);
-    authParamsForm.findField('login_hint', true).setValue(authParams.login_hint);
   });
 
   const instructions = [
@@ -129,6 +138,9 @@ export default function Index() {
               label="UI Locales"
               hint="Space-separated list of preferred languages"
             >
+              <Input />
+            </FormField>
+            <FormField span={12} field="scope" label="Scope" hint="Space-separated list of requested scopes">
               <Input />
             </FormField>
           </Form>

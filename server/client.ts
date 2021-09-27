@@ -149,6 +149,10 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
            */
           client_id: t.union([t.string, t.undefined]),
           /**
+           * An optional space-separated scope values. Default to the standard scopes.
+           */
+          scope: t.union([t.string, t.undefined]),
+          /**
            * An OAuth 2.0 Response Type value that determines the authorization
            * processing flow to be used. Default to Authorization Code Flow.
            */
@@ -183,7 +187,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
       },
       handle: async (_1, args, { res, logger, publicURL }) => {
         logger.info('Generate authorization request with parameters', args);
-        const { client_id, response_type, response_mode, redirect_uri, ...rest } = args;
+        const { client_id, scope, response_type, response_mode, redirect_uri, ...rest } = args;
         const service = withContext(publicURL);
 
         const state = base64URLEncode(randomBytes(32));
@@ -211,11 +215,11 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
           prompt: 'login',
           /**
            * Request specific sets of information be made available as Claims in
-           * the response of the userinfo endpoint.
+           * the response of the userinfo endpoint. Must includes "openid".
            *
            * https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
            */
-          scope: 'openid profile email',
+          scope: scope ?? 'openid profile email',
           /**
            * Determines the authorization processing flow to be used, including
            * what parameters are returned from the endpoints used.

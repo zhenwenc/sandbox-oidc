@@ -25,6 +25,8 @@ export type ClientDetails = ClientMeta & {
 export type ClientAuthParams = {
   enabled?: boolean;
   login_hint?: string;
+  ui_locales?: string;
+  scope?: string;
 };
 
 async function registerClient(input: ClientDetails): Promise<unknown> {
@@ -147,7 +149,7 @@ export function useOAuthClient() {
      */
     setAuthParams: useLatestCallback((updates: Partial<ClientAuthParams>) => {
       if (!isMounted()) return;
-      setStoredParams({ ...storedParams, ...updates });
+      setStoredParams(R.reject(R.isNil, { ...storedParams, ...updates }));
     }),
     /**
      * Initiate authentication requests using configurations for the given client.
@@ -170,7 +172,11 @@ export function useOAuthClient() {
 
       window.location.href = stringifyUrl({
         url: `${window.location.origin}/oauth/authorize`,
-        query: { ...(enabled ? params : {}), client_id, redirect_uri: redirectUri },
+        query: {
+          ...(enabled ? R.reject(R.or(R.isNil, R.isEmpty))(params) : {}),
+          client_id,
+          redirect_uri: redirectUri,
+        },
       });
     }),
   };
