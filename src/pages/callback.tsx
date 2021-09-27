@@ -16,8 +16,23 @@ export default function CallbackScreen() {
   useEffect(() => {
     console.debug('[CallbackScreen] Parsed params:', query);
 
+    // The page may not be able to read the browser's location when exported as
+    // static HTML, or unexpectedly rendered on the server-side.
     if (isEmpty(query)) return;
-    setParams(query as Record<string, string>);
+
+    // If the page was opened in a popup window or iframe, let's communicate via
+    // event messages to workaround the same-origin policy.
+    //
+    // Assuming the opener will be responsible to close the window on their own
+    // that we won't consume the authorization code.
+    //
+    // https://stackoverflow.com/questions/25098021
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
+    if (window.opener) {
+      window.opener.postMessage(query, '*');
+    } else {
+      setParams(query as Record<string, string>);
+    }
   }, [JSON.stringify(query)]);
 
   return (
