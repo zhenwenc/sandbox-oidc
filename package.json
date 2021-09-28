@@ -12,7 +12,7 @@
     "start": "node build/server/app.js",
     "start:dev": "nodemon --watch 'server/**/*.*' --exec ts-node -T --files server/app.ts",
     "build:web": "next build && next export -o dist",
-    "format": "prettier --write --list-different ./src ./server",
+    "format": "prettier --write --list-different .",
     "heroku-postbuild": "tsc -b . && next build"
   },
   "dependencies": {

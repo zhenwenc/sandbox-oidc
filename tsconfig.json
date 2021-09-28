@@ -1,12 +1,7 @@
 {
   "extends": "@navch/common",
   "compilerOptions": {
-    "lib": [
-      "ES2015",
-      "es7",
-      "esnext",
-      "dom"
-    ],
+    "lib": ["ES2015", "es7", "esnext", "dom"],
     "jsx": "preserve",
     "target": "es6",
     "noEmit": false,
@@ -18,18 +13,10 @@
     "baseUrl": ".",
     "outDir": "build",
     "paths": {
-      "@services/*": [
-        "src/services/*"
-      ],
-      "@components/*": [
-        "src/components/*"
-      ]
+      "@services/*": ["services/*"],
+      "@components/*": ["components/*"]
     },
     "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"]
 }
