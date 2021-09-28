@@ -22,7 +22,7 @@ import {
 import { useLatestCallback } from '@navch-ui/hooks';
 import { useMount } from 'react-use';
 
-import { ClientInfo, ClientDetails, ClientAuthParams, useOAuthClient } from '@services/client';
+import { ClientInfo, ClientDetails, ClientAuthParams, useOAuthClient } from '@hooks/useClient';
 import { Layout } from '@components/Layout';
 import { ClientTable } from '@components/ClientTable';
 

@@ -13,7 +13,7 @@
     "baseUrl": ".",
     "outDir": "build",
     "paths": {
-      "@services/*": ["services/*"],
+      "@hooks/*": ["hooks/*"],
       "@components/*": ["components/*"]
     },
     "forceConsistentCasingInFileNames": true

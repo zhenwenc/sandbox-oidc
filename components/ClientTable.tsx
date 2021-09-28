@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button, Text, Table, TableColumnProps, IconClose, IconEdit, IconPets } from '@navch-ui/core';
 import { useLatestCallback } from '@navch-ui/hooks';
 
-import { ClientInfo } from '@services/client';
+import { ClientInfo } from '@hooks/useClient';
 
 export type ClientTableProps = {
   clients: ClientInfo[];
