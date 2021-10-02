@@ -29,7 +29,7 @@ export default function CallbackScreen() {
     // https://stackoverflow.com/questions/25098021
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
     if (window.opener) {
-      window.opener.postMessage(query, '*');
+      window.opener.postMessage({ source: 'oidc-sandbox', payload: query }, '*');
     } else {
       setParams(query as Record<string, string>);
     }
