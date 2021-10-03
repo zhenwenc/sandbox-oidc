@@ -1,5 +1,6 @@
 import * as t from 'io-ts';
 import fs from 'fs';
+import cors from 'cors';
 import next from 'next';
 import morgan from 'morgan';
 import express from 'express';
@@ -66,6 +67,7 @@ const clients = process.env.OIDC_CLIENTS
 const app = express();
 app.enable('trust proxy'); // Trusting TLS offloading proxies
 
+app.use(cors());
 app.use(errorhandler({ log: (err, msg) => logger.error(msg, err) }));
 app.use(requestLogger);
 app.use('/health', (_, res) => {
