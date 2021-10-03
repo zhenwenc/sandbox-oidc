@@ -2,6 +2,7 @@ import * as t from 'io-ts';
 import R from 'ramda';
 import express from 'express';
 import memoize from 'memoizee';
+import { oneLineTrim as markdown } from 'common-tags';
 import { BinaryLike, createHash, randomBytes } from 'crypto';
 import { Issuer, AuthorizationParameters, custom, errors } from 'openid-client';
 
@@ -39,6 +40,11 @@ export namespace Metadata {
      * one that was sent in the Authentication Request to prevent replay attacks.
      */
     nonce: t.union([t.string, t.undefined]),
+    /**
+     * This is a sandbox internal attribute that used to indicate whether this OIDC
+     * client is discoverable from the listing endpoints.
+     */
+    discoverable: t.union([t.boolean, t.undefined]),
   });
 }
 
@@ -75,6 +81,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
       client_secret: 'oidc-secret',
       redirect_uri: `${publicURL}/oauth/callback`,
       nonce: undefined,
+      discoverable: true,
     };
 
     const getMetadata = async (key: string | undefined): Promise<Metadata | undefined> => {
@@ -101,6 +108,10 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
     makeHandler({
       route: '/oauth/clients',
       method: 'GET',
+      description: markdown`
+        List all the predefined OAuth clients in the application. They are configured
+        via environment variables.
+      `,
       context: ClientContext.codec,
       handle: async (_1, _2, { res, logger, publicURL }) => {
         logger.debug('Return predefined OIDC clients');
@@ -108,9 +119,10 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
         const service = withContext(publicURL);
         const results = await threadP(
           [service.defaultClient, ...(options.clients || [])],
-          R.map(x => Metadata.withClientId(validate(x.client_id, t.string))),
-          R.pipe(R.map(service.getMetadata), s => Promise.all(s)),
-          R.filter(isNotNullish),
+          s => s.map(x => Metadata.withClientId(validate(x.client_id, t.string))),
+          s => Promise.all(s.map(service.getMetadata)),
+          s => s.filter(isNotNullish),
+          s => s.filter(x => x.discoverable),
           R.map(R.pick(['issuer', 'client_id', 'redirect_uri']))
         );
         res.send(results);

@@ -1,4 +1,5 @@
 import * as t from 'io-ts';
+import fs from 'fs';
 import next from 'next';
 import morgan from 'morgan';
 import express from 'express';
@@ -15,6 +16,16 @@ import { buildOIDCProvider } from './provider';
 import { buildRedisAdapterFactory } from './adapter';
 import { buildInMemoryStorage, buildRedisStorage } from './storage';
 import { resolvePublicURL } from './utils';
+
+// Load environment variables from .env* files. It will not modify any
+// environment variables that have already been set.
+// https://github.com/motdotla/dotenv
+const dotenvFiles = ['.env.local', '.env'];
+dotenvFiles.forEach(dotenvFile => {
+  if (fs.existsSync(dotenvFile)) {
+    require('dotenv').config({ path: dotenvFile });
+  }
+});
 
 const port = process.env.PORT || '3000';
 
