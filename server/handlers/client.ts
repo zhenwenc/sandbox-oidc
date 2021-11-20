@@ -1,16 +1,15 @@
 import * as t from 'io-ts';
 import R from 'ramda';
-import express from 'express';
 import memoize from 'memoizee';
 import { oneLineTrim as markdown } from 'common-tags';
 import { BinaryLike, createHash, randomBytes } from 'crypto';
 import { Issuer, AuthorizationParameters, custom, errors } from 'openid-client';
 
 import { ForbiddenError, NotFoundError, isNotNullish, threadP } from '@navch/common';
-import { makeHandler, makeRouter } from '@navch/express';
+import { makeHandler, makeHandlers } from '@navch/express';
 import { validate } from '@navch/codec';
 
-import { Storage } from './storage';
+import { Storage } from '../storage';
 
 export type Metadata = t.TypeOf<typeof Metadata.codec>;
 export namespace Metadata {
@@ -65,10 +64,10 @@ export type OIDCClientOptions = {
  * - Default callback handler for response inspection.
  * - Dynamic OAuth client registration to support custom OIDC provider.
  *
- * http://localhost:8080/oauth
- * https://sandbox-oidc.herokuapp.com/oauth
+ * http://localhost:8080/oidc/oauth
+ * https://sandbox-oidc.herokuapp.com/oidc/oauth
  */
-export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
+export const buildOIDCClient = makeHandlers((options: OIDCClientOptions) => {
   const discover = memoize(Issuer.discover, { async: true, max: 10, maxAge: 5000 });
 
   // We hosts the Provider in a sub-path, it may require redirect during discovery.
@@ -79,7 +78,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
       issuer: publicURL,
       client_id: 'oidc-client',
       client_secret: 'oidc-secret',
-      redirect_uri: `${publicURL}/oauth/callback`,
+      redirect_uri: `${publicURL}/oidc/callback`,
       nonce: undefined,
       discoverable: true,
     };
@@ -106,14 +105,14 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
 
   return [
     makeHandler({
-      route: '/oauth/clients',
+      route: '/',
       method: 'GET',
       description: markdown`
         List all the predefined OAuth clients in the application. They are configured
         via environment variables.
       `,
       context: ClientContext.codec,
-      handle: async (_1, _2, { res, logger, publicURL }) => {
+      handle: async (_1, _2, { logger, publicURL }) => {
         logger.debug('Return predefined OIDC clients');
 
         const service = withContext(publicURL);
@@ -125,15 +124,15 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
           s => s.filter(x => x.discoverable),
           R.map(R.pick(['issuer', 'client_id', 'redirect_uri']))
         );
-        res.send(results);
+        return results;
       },
     }),
     makeHandler({
-      route: '/oauth/clients',
+      route: '/',
       method: 'POST',
       context: ClientContext.codec,
       input: { body: Metadata.codec },
-      handle: async (_1, args, { res, logger, publicURL }) => {
+      handle: async (_1, args, { logger, publicURL }) => {
         const service = withContext(publicURL);
         const { client_id, redirect_uri = service.defaultClient.redirect_uri } = args;
         const metadata = { ...args, redirect_uri };
@@ -146,12 +145,11 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
           throw new ForbiddenError({ reason: 'Predefined clients are protected!' });
         }
         await options.storage.setItem(Metadata.withClientId(client_id), metadata, 86400);
-        res.send({ status: 'Ok' });
+        return { status: 'Ok' };
       },
     }),
     makeHandler({
-      route: '/oauth/authorize',
-      middlewares: [express.urlencoded({ extended: false })],
+      route: '/authorize',
       context: ClientContext.codec,
       input: {
         query: t.type({
@@ -284,13 +282,12 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
         };
 
         logger.info('Generated authorization request', params);
-        res.redirect(client.authorizationUrl(params));
+        res.writeHead(302, { Location: client.authorizationUrl(params) });
       },
     }),
     makeHandler({
-      route: '/oauth/token',
+      route: '/token',
       method: 'POST',
-      middlewares: [express.json()],
       context: ClientContext.codec,
       input: {
         body: t.type({
@@ -332,7 +329,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
         // must perform on the server-side as it requires client credentials.
         //
         const exchangeToken = client.callback(
-          redirect_uri ?? `${publicURL}/oauth/callback`,
+          redirect_uri ?? `${publicURL}/oidc/callback`,
           { code, state },
           { nonce, state, code_verifier: verifier }
         );
@@ -352,7 +349,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
       },
     }),
     makeHandler({
-      route: '/oauth/logout',
+      route: '/logout',
       context: ClientContext.codec,
       input: {
         query: t.type({
@@ -373,7 +370,7 @@ export const buildOIDCClient = makeRouter<OIDCClientOptions>(options => {
         const client = new issuer.Client({ client_id: metadata.client_id });
 
         logger.info('Received logout request, redirect to end_session_endpoint');
-        res.redirect(client.endSessionUrl());
+        res.writeHead(302, { Location: client.endSessionUrl() });
       },
     }),
   ];

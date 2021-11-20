@@ -1,13 +1,16 @@
 import * as t from 'io-ts';
 import Chance from 'chance';
-import memoize from 'memoizee';
 import { URLSearchParams } from 'url';
 import { errors, Provider, KoaContextWithOIDC, InteractionResults, AdapterFactory } from 'oidc-provider';
 
 import { Logger } from '@navch/common';
-import { makeHandler, makeRouter, middlewares } from '@navch/express';
+import { instanceOf } from '@navch/codec';
+import { makeHandler, makeHandlers, middlewares } from '@navch/express';
+
+import { routes } from '../constants';
 
 export type OIDCProviderOptions = {
+  readonly publicURL: string;
   readonly adapter: AdapterFactory | undefined;
 };
 
@@ -16,8 +19,8 @@ export type ProviderContext = {
   readonly publicURL: string;
 };
 
-const buildProviderFunc = (context: ProviderContext, options: OIDCProviderOptions) => {
-  const provider = new Provider(context.publicURL, {
+export const buildProvider = (options: ProviderContext & OIDCProviderOptions): Provider => {
+  const provider = new Provider(options.publicURL, {
     adapter: options.adapter,
     clients: [
       {
@@ -51,7 +54,7 @@ const buildProviderFunc = (context: ProviderContext, options: OIDCProviderOption
          *
          * NOTE: We allow wildcard redirect uri, see below.
          */
-        redirect_uris: [`${context.publicURL}/oauth/callback`],
+        redirect_uris: [`${options.publicURL}/oidc/callback`],
       },
       {
         client_id: 'oidc-client-implicit',
@@ -67,15 +70,29 @@ const buildProviderFunc = (context: ProviderContext, options: OIDCProviderOption
          * This client supports Implicit Flow that insecurel redirect URIs are
          * not allowed.
          */
-        redirect_uris: [`${context.publicURL}/oauth/callback`],
+        redirect_uris: [`${options.publicURL}/oidc/callback`],
       },
     ],
+    routes: {
+      authorization: `${routes.basePath}/auth`,
+      backchannel_authentication: `${routes.basePath}/backchannel`,
+      code_verification: `${routes.basePath}/device`,
+      device_authorization: `${routes.basePath}/device/auth`,
+      end_session: `${routes.basePath}/session/end`,
+      introspection: `${routes.basePath}/token/introspection`,
+      jwks: `${routes.basePath}/jwks`,
+      pushed_authorization_request: `${routes.basePath}/request`,
+      registration: `${routes.basePath}/reg`,
+      revocation: `${routes.basePath}/token/revocation`,
+      token: `${routes.basePath}/token`,
+      userinfo: `${routes.basePath}/me`,
+    },
     /**
      * https://github.com/panva/node-oidc-provider/tree/main/docs#user-flows
      * https://github.com/panva/node-oidc-provider/tree/main/docs#interactionsurl
      */
     interactions: {
-      url: (_ctx, interaction) => `/oidc/interaction/${interaction.uid}`,
+      url: (_ctx, interaction) => `${routes.basePath}/interaction/${interaction.uid}`,
     },
     /**
      * Used to keep track of various User-Agent states.
@@ -166,7 +183,7 @@ const buildProviderFunc = (context: ProviderContext, options: OIDCProviderOption
     findAccount: async (_ctx, sub) => ({
       accountId: sub,
       claims: async (use, scope) => {
-        const { logger } = context;
+        const { logger } = options;
         logger.info('Generate user profile for subject', { sub, use, scope });
 
         const chance = new Chance(sub);
@@ -223,7 +240,7 @@ const buildProviderFunc = (context: ProviderContext, options: OIDCProviderOption
   provider.Client.prototype.redirectUriAllowed = _redirectUri => true;
 
   function handleClientAuthErrors(ctx: KoaContextWithOIDC, err: errors.OIDCProviderError) {
-    const { logger } = context;
+    const { logger } = options;
     const { authorization } = ctx.headers;
     const { client, body, params } = ctx.oidc;
     if (err.statusCode === 401 && err.message === 'invalid_client') {
@@ -255,100 +272,96 @@ const buildProviderFunc = (context: ProviderContext, options: OIDCProviderOption
  * https://github.com/panva/node-oidc-provider/tree/main/docs
  * https://github.com/panva/node-oidc-provider/blob/main/docs/README.md#user-flows
  */
-export const buildOIDCProvider = makeRouter<OIDCProviderOptions>(options => {
-  const buildProvider = memoize(buildProviderFunc, {
-    normalizer: ([{ publicURL }]) => publicURL,
-    max: 10,
-    maxAge: 30000,
-  });
+export const buildOIDCProvider = makeHandlers(() => [
+  makeHandler({
+    route: '/interaction/:uid',
+    input: {
+      params: t.type({ uid: t.union([t.string, t.undefined]) }),
+    },
+    context: t.type({ provider: instanceOf(Provider) }),
+    middlewares: [middlewares.setNoCache],
+    handle: async (_1, _2, { req, res, logger, provider }) => {
+      const { prompt, uid, session } = await provider.interactionDetails(req, res);
+      logger.info('Received interaction request', { prompt, uid, session });
 
-  return [
-    makeHandler({
-      route: '/oidc/interaction/:uid',
-      input: {
-        params: t.type({ uid: t.union([t.string, t.undefined]) }),
-      },
-      context: t.type({ publicURL: t.string }),
-      middlewares: [middlewares.setNoCache],
-      handle: async (_1, _2, { req, res, logger, publicURL }) => {
-        const provider = buildProvider({ publicURL, logger }, options);
-        const { prompt, uid, session } = await provider.interactionDetails(req, res);
-        logger.info('Received interaction request', { prompt, uid, session });
+      if (prompt.name === 'login') {
+        const reply_to = `${provider.issuer}${routes.basePath}/interaction/${uid}/submit`;
+        const query = new URLSearchParams({ ...prompt.details, reply_to });
+        res.writeHead(302, { Location: '/oidc/interaction?' + query.toString() });
+        return;
+      }
+      throw new Error(`Unsupported prompt: ${prompt.name}`);
+    },
+  }),
+  makeHandler({
+    route: '/interaction/:uid/submit',
+    input: {
+      params: t.type({ uid: t.union([t.string, t.undefined]) }),
+      query: t.type({ code: t.union([t.string, t.undefined]) }),
+    },
+    context: t.type({ provider: instanceOf(Provider) }),
+    middlewares: [middlewares.setNoCache],
+    handle: async (_1, { code }, { req, res, logger, provider }) => {
+      const { uid, params, grantId } = await provider.interactionDetails(req, res);
+      const { client_id, scope } = params;
 
-        if (prompt.name === 'login') {
-          const reply_to = `${publicURL}/oidc/interaction/${uid}/submit`;
-          const query = new URLSearchParams({ ...prompt.details, reply_to });
-          return res.redirect('/oauth/interaction?' + query.toString());
-        }
-        throw new Error(`Unsupported prompt: ${prompt.name}`);
-      },
-    }),
-    makeHandler({
-      route: '/oidc/interaction/:uid/submit',
-      input: {
-        params: t.type({ uid: t.union([t.string, t.undefined]) }),
-        query: t.type({ code: t.union([t.string, t.undefined]) }),
-      },
-      context: t.type({ publicURL: t.string }),
-      middlewares: [middlewares.setNoCache],
-      handle: async (_1, { code }, { req, res, logger, publicURL }) => {
-        const provider = buildProvider({ publicURL, logger }, options);
-        const { uid, params, grantId } = await provider.interactionDetails(req, res);
-        const { client_id, scope } = params;
+      if (typeof code !== 'string') {
+        throw new Error('Invalid submission payload, "code" is required');
+      }
+      logger.info('Received interaction submission', { uid, params, grantId, code });
 
-        if (typeof code !== 'string') {
-          throw new Error('Invalid submission payload, "code" is required');
-        }
-        logger.info('Received interaction submission', { uid, params, grantId, code });
+      // The program suppose to find the user from database with the provided
+      // credentials, we will generate claims from the input code instead.
+      //
+      // TODO Generate hash as accountId with PBE instead
+      const accountId = code;
 
-        // The program suppose to find the user from database with the provided
-        // credentials, we will generate claims from the input code instead.
-        //
-        // TODO Generate hash as accountId with PBE instead
-        const accountId = code;
+      // Instead of redirecting user to a consent screen, we silently skip the
+      // check by instantiating a grant without asking confirmation. rude!
+      const grant = grantId
+        ? await provider.Grant.find(grantId)
+        : new provider.Grant({ accountId, clientId: client_id as string });
 
-        // Instead of redirecting user to a consent screen, we silently skip the
-        // check by instantiating a grant without asking confirmation. rude!
-        const grant = grantId
-          ? await provider.Grant.find(grantId)
-          : new provider.Grant({ accountId, clientId: client_id as string });
+      if (grant === undefined) {
+        throw new Error(`No grant found with ID: ${grantId}`);
+      }
+      if (!grant.getOIDCScope().includes(scope as string)) {
+        grant.addOIDCScope(scope as string);
+      }
 
-        if (grant === undefined) {
-          throw new Error(`No grant found with ID: ${grantId}`);
-        }
-        if (!grant.getOIDCScope().includes(scope as string)) {
-          grant.addOIDCScope(scope as string);
-        }
+      const result: InteractionResults = {
+        login: { accountId, remember: false },
+        consent: { grantId: await grant.save() },
+      };
 
-        const result: InteractionResults = {
-          login: { accountId, remember: false },
-          consent: { grantId: await grant.save() },
-        };
-
-        // Resume uri is returned instead of immediate http redirect
-        // @see provider.interactionFinished
-        const redirectTo = await provider.interactionResult(req, res, result, {
-          mergeWithLastSubmission: false,
-        });
-        logger.info(`Interaction finished, redirect user to ${redirectTo}`);
-        res.redirect(redirectTo);
-      },
-    }),
-    makeHandler({
-      route: '/.well-known/openid-configuration',
-      handle: (_1, _2, { req, res }) => {
-        res.redirect(301, '/oidc' + req.path);
-      },
-    }),
-    makeHandler({
-      route: '/oidc/*',
-      noDefaultMiddlewares: true,
-      context: t.type({ publicURL: t.string }),
-      handle: (_1, _2, { req, res, logger, publicURL }) => {
-        req.url = req.url.replace(/^\/oidc/, ''); // rewrite
-        const provider = buildProvider({ publicURL, logger }, options);
-        provider.callback()(req, res);
-      },
-    }),
-  ];
-});
+      // Resume uri is returned instead of immediate http redirect
+      // @see provider.interactionFinished
+      const redirectTo = await provider.interactionResult(req, res, result, {
+        mergeWithLastSubmission: false,
+      });
+      logger.info(`Interaction finished, redirect user to ${redirectTo}`);
+      res.writeHead(302, { Location: redirectTo });
+    },
+  }),
+  makeHandler({
+    route: '/.well-known/openid-configuration',
+    context: t.type({ provider: instanceOf(Provider) }),
+    handle: (_1, _2, { req, res, logger, provider }) => {
+      logger.debug(`Received OIDC discovery request from ${req.url}`);
+      req.url = req.url?.replace(/^\/api/, ''); // rewrite
+      return provider.callback()(req, res);
+    },
+  }),
+  makeHandler({
+    route: '/:path*',
+    context: t.type({ provider: instanceOf(Provider) }),
+    handle: async (_1, _2, { req, res, logger, provider }) => {
+      console.info('--- handle', req.url);
+      req.url = req.url?.replace(/^\/api/, routes.basePath); // rewrite
+      // req.url = req.url?.replace(/^\/api/, ''); // rewrite
+      // req.url = req.url?.replace(/^\/oidc/, ''); // rewrite
+      logger.debug(`Delegate request to OIDC provider: ${req.url}`);
+      await Promise.resolve().then(() => provider.callback()(req, res));
+    },
+  }),
+]);

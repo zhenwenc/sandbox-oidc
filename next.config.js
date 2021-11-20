@@ -2,7 +2,12 @@ module.exports = {
   /**
    * Deploy webapp under a sub-path for clear separation from provider.
    */
-  basePath: '/oauth',
+  basePath: '/oidc',
+  rewrites: async () => {
+    return {
+      fallback: [{ source: '/:path*', destination: `/api/:path*` }],
+    };
+  },
   /**
    * Built-in ESLint support.
    *

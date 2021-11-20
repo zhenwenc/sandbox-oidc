@@ -2,6 +2,7 @@ import { useAsyncFn } from 'react-use';
 import { stringifyUrl } from 'query-string';
 
 import { sleep } from '@navch/common';
+import { routes } from '../server/constants';
 
 function openPopup(url: string): Window {
   const w = 600;
@@ -69,7 +70,7 @@ async function promptLogin() {
   const redirect_uri = `${window.location.origin}/callback`;
 
   const authorizeUrl = stringifyUrl({
-    url: `${window.location.origin}/oauth/authorize`,
+    url: `${window.location.origin}${routes.authorize}`,
     query: { redirect_uri },
   });
   const popup = openPopup(authorizeUrl);

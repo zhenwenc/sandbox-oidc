@@ -3,6 +3,8 @@ import { isEmpty } from 'ramda';
 import { useAsync } from 'react-use';
 import { Card, Text, Message } from '@navch-ui/core';
 
+import { routes } from '@server/constants';
+
 type InteractionResultProps = {
   /**
    * Authentication results from the callback URL, either
@@ -37,7 +39,7 @@ export const InteractionResult: React.FC<InteractionResultProps> = props => {
   const fetchToken = useAsync(async () => {
     if (!showDetails || !SuccessResult.is(params)) return;
 
-    const resp = await fetch('/oauth/token', {
+    const resp = await fetch(routes.token, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),

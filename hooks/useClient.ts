@@ -6,6 +6,8 @@ import { useAsyncFn, useMount, useMountedState, useLocalStorage } from 'react-us
 import { useLatestCallback } from '@navch-ui/hooks';
 import { thread } from '@navch/common';
 
+import { routes } from '@server/constants';
+
 export type ClientMeta = {
   id?: string;
   remote?: boolean;
@@ -31,7 +33,7 @@ export type ClientAuthParams = {
 
 async function registerClient(input: ClientDetails): Promise<unknown> {
   try {
-    const resp = await fetch('/oauth/clients', {
+    const resp = await fetch(routes.clients, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -48,7 +50,7 @@ async function registerClient(input: ClientDetails): Promise<unknown> {
 
 async function fetchStaticClients(): Promise<ClientInfo[]> {
   try {
-    const resp = await fetch('/oauth/clients', {
+    const resp = await fetch(routes.clients, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -76,7 +78,7 @@ export function useOAuthClient() {
 
   // Fetch data on client-side only
   useMount(async () => {
-    setRedirectUri(`${window.location.origin}/oauth/callback`);
+    setRedirectUri(`${window.location.origin}/oidc/callback`);
     await doFetchStaticClients();
   });
 
@@ -171,7 +173,7 @@ export function useOAuthClient() {
       }
 
       window.location.href = stringifyUrl({
-        url: `${window.location.origin}/oauth/authorize`,
+        url: `${window.location.origin}/${routes.authorize}`,
         query: {
           ...(enabled ? R.reject(R.or(R.isNil, R.isEmpty))(params) : {}),
           client_id,
