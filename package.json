@@ -23,7 +23,7 @@
     "@navch-ui/utils-dom": "0.2.1-next.38",
     "@navch/codec": "0.7.5-next.13",
     "@navch/common": "0.7.5-next.13",
-    "@navch/express": "0.7.5-next.13",
+    "@navch/http": "0.7.5-next.13",
     "chance": "1.1.7",
     "cors": "2.8.5",
     "errorhandler": "1.5.1",

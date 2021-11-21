@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { middlewares } from '@navch/express';
+import { middlewares } from '@navch/http';
 
 import { buildHandler } from '../../server';
 

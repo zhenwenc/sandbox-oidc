@@ -6,7 +6,7 @@ import { BinaryLike, createHash, randomBytes } from 'crypto';
 import { Issuer, AuthorizationParameters, custom, errors } from 'openid-client';
 
 import { ForbiddenError, NotFoundError, isNotNullish, threadP } from '@navch/common';
-import { makeHandler, makeHandlers } from '@navch/express';
+import { makeHandler, makeHandlers } from '@navch/http';
 import { validate } from '@navch/codec';
 
 import { Storage } from '../storage';

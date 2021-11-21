@@ -5,7 +5,7 @@ import { errors, Provider, KoaContextWithOIDC, InteractionResults, AdapterFactor
 
 import { Logger } from '@navch/common';
 import { instanceOf } from '@navch/codec';
-import { makeHandler, makeHandlers, middlewares } from '@navch/express';
+import { makeHandler, makeHandlers, middlewares } from '@navch/http';
 
 import { routes } from '../constants';
 

@@ -5,7 +5,7 @@ import memoize from 'memoizee';
 import { compose, trim } from 'ramda';
 
 import { Logger } from '@navch/common';
-import { makeRouter, middlewares, setRequestContext } from '@navch/express';
+import { makeRouter, middlewares, setRequestContext } from '@navch/http';
 
 import { buildOIDCClient } from './handlers/client';
 import { buildOIDCProvider, buildProvider } from './handlers/provider';
