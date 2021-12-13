@@ -11,6 +11,7 @@ export class AppConfig extends BaseConfig {
   readonly redisURI = this.read('REDIS_URI', null);
 
   readonly publicURL = Option.of(this.read('OIDC_PUBLIC_URL', null))
+    .orElse(() => Option.of(this.read('VERCEL_URL', null)).map(domain => `https://${domain}`))
     .map(resolvePublicURL)
     .getOrElse(Promise.resolve(`http://localhost:${this.port}`));
 

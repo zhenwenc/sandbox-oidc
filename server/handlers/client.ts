@@ -212,6 +212,7 @@ export const buildOIDCClient = makeHandlers((options: OIDCClientOptions) => {
           ...R.reject(R.isNil, stored || {}),
           ...R.reject(R.isNil, { redirect_uri, nonce }),
         };
+        logger.debug('Client metadata', metadata); // TODO mask secrets
 
         const issuer = await discover(metadata.issuer);
         const client = new issuer.Client({ client_id: metadata.client_id });

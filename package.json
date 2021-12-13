@@ -8,12 +8,12 @@
     "url": "https://github.com/zhenwenc"
   },
   "scripts": {
-    "build": "tsc -b .",
+    "build": "tsc -b . && next build",
     "start": "node build/server/app.js",
     "start:dev": "next dev",
-    "build:web": "next build && next export -o dist",
     "format": "prettier --write --list-different .",
-    "heroku-postbuild": "tsc -b . && next build"
+    "vercel:deploy": "vercel",
+    "heroku-postbuild": "yarn build"
   },
   "dependencies": {
     "@navch-ui/core": "0.2.1-next.38",
@@ -21,9 +21,9 @@
     "@navch-ui/styles": "0.2.1-next.38",
     "@navch-ui/utils": "0.2.1-next.38",
     "@navch-ui/utils-dom": "0.2.1-next.38",
-    "@navch/codec": "0.7.5-next.13",
-    "@navch/common": "0.7.5-next.13",
-    "@navch/http": "0.7.5-next.13",
+    "@navch/codec": "0.7.5-next.19",
+    "@navch/common": "0.7.5-next.19",
+    "@navch/http": "0.7.5-next.19",
     "chance": "1.1.7",
     "cors": "2.8.5",
     "errorhandler": "1.5.1",
@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@navch-ui/types": "0.2.1-next.38",
-    "@navch/toolkit": "0.7.5-next.13",
+    "@navch/toolkit": "0.7.5-next.19",
     "@types/chance": "1.1.3",
     "@types/cors": "2.8.12",
     "@types/errorhandler": "1.5.0",

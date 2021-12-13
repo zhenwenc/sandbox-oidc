@@ -9,9 +9,8 @@ export const config = {
   },
 };
 
+const routes = middlewares.toCallback(buildHandler().routes());
 async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.info('--- what', req.url);
-  const routes = middlewares.toCallback(buildHandler().routes());
   return middlewares.runMiddleware(req, res, routes);
 }
 export default handler;
