@@ -40,7 +40,7 @@ export default function CallbackScreen() {
       {params ? (
         <InteractionResult params={params} showDetails={true} />
       ) : (
-        <Message filled kind="loading" title="Loading..." />
+        <Message filled variant="loading" title="Loading..." />
       )}
     </Layout>
   );

@@ -196,7 +196,7 @@ export default function Index() {
           return (
             <Box key={name} topline={idx > 0}>
               <Box flex align="center" justify="between">
-                <Labeled padded prefixIcon={<IconPin />} suffixIcon={tooltip}>
+                <Labeled padded prefix={<IconPin />} suffix={tooltip}>
                   <Text>{name}</Text>
                 </Labeled>
                 <Box ph={2}>{actions}</Box>

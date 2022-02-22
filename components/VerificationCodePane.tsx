@@ -82,7 +82,7 @@ export function VerificationCodePane(props: VerificationCodePaneProps) {
         </Box>
       </Box>
 
-      <Message kind="info" filled title="What is this?">
+      <Message variant="info" filled title="What is this?">
         <Text variant="subtitle1" muted>
           {`You've requested to claim your certificate, the content will `}
           {`be generated based on the code you entered above.`}
@@ -94,7 +94,7 @@ export function VerificationCodePane(props: VerificationCodePaneProps) {
 
 export const useStyles = makeStyles(theme => ({
   codePane_input: {
-    ...theme.font.h6,
+    ...theme.typography.font.h6,
     outline: 'none',
     border: 'none',
     boxShadow: 'none',
