@@ -356,7 +356,6 @@ export const buildOIDCProvider = makeHandlers(() => [
     route: '/:path*',
     context: t.type({ provider: instanceOf(Provider) }),
     handle: async (_1, _2, { req, res, logger, provider }) => {
-      console.info('--- handle', req.url);
       req.url = req.url?.replace(/^\/api/, routes.basePath); // rewrite
       // req.url = req.url?.replace(/^\/api/, ''); // rewrite
       // req.url = req.url?.replace(/^\/oidc/, ''); // rewrite
