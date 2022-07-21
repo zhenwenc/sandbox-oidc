@@ -60,13 +60,13 @@ export const InteractionResult: React.FC<InteractionResultProps> = props => {
         </Text>
       </Message>
     ) : data.value ? (
-      <Message filled variant="success" title={title}>
-        <Text component="pre" variant="subtitle1" scrollable muted>
+      <Message filled variant="success" title={title} scrollable>
+        <Text component="pre" variant="subtitle1" muted>
           {JSON.stringify(data.value, null, 4)}
         </Text>
       </Message>
     ) : (
-      <Message filled variant="loading" title="Loading..." />
+      <Message filled variant="success" title="Loading..." />
     );
   };
 
