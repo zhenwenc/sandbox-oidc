@@ -216,13 +216,8 @@ export default function Index() {
         />
       </Card>
 
-      <Modal
-        title="OIDC Client Registration"
-        style={{ minWidth: 600 }}
-        isOpen={isModalOpen}
-        onCancel={hideModal}
-        onConfirm={registrationForm.submit}
-      >
+      <Modal style={{ minWidth: 600 }} isOpen={isModalOpen}>
+        <Modal.Title>{'OIDC Client Registration'}</Modal.Title>
         <Form form={registrationForm}>
           <FormField field="issuer" defaultValue={selectedClient?.issuer} required>
             <Input autoFocus />
@@ -234,6 +229,7 @@ export default function Index() {
             <Input />
           </FormField>
         </Form>
+        <Modal.Footer onCancel={hideModal} onConfirm={registrationForm.submit} />
       </Modal>
     </Layout>
   );

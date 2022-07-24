@@ -82,7 +82,8 @@ export function VerificationCodePane(props: VerificationCodePaneProps) {
         </Box>
       </Box>
 
-      <Message variant="info" filled title="What is this?">
+      <Message variant="info" filled>
+        <Message.Title>{'What is this?'}</Message.Title>
         <Text variant="subtitle1" muted>
           {`You've requested to claim your certificate, the content will `}
           {`be generated based on the code you entered above.`}

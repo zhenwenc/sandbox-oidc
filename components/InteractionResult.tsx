@@ -54,19 +54,23 @@ export const InteractionResult: React.FC<InteractionResultProps> = props => {
 
   const render = (title: string, data: ReturnType<typeof useAsync>) => {
     return data.error ? (
-      <Message filled variant="error" title={title}>
+      <Message filled variant="error">
+        <Message.Title>{title}</Message.Title>
         <Text component="pre" variant="subtitle1" scrollable muted>
           {JSON.stringify(data.error, null, 4)}
         </Text>
       </Message>
     ) : data.value ? (
-      <Message filled variant="success" title={title} scrollable>
+      <Message filled variant="success" scrollable>
+        <Message.Title>{title}</Message.Title>
         <Text component="pre" variant="subtitle1" muted>
           {JSON.stringify(data.value, null, 4)}
         </Text>
       </Message>
     ) : (
-      <Message filled variant="success" title="Loading..." />
+      <Message filled variant="success">
+        <Message.Title>{'Loading...'}</Message.Title>
+      </Message>
     );
   };
 
