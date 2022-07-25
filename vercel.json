@@ -4,6 +4,11 @@
       "source": "/:path((?!oidc/)\\.well-known/.*)",
       "destination": "/oidc/api/:path*",
       "permanent": false
+    },
+    {
+      "source": "/",
+      "destination": "/oidc",
+      "permanent": false
     }
   ]
 }
